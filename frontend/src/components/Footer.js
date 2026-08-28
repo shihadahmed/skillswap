@@ -93,17 +93,17 @@ export default function Footer() {
           <h4 className="font-semibold text-ink mb-3">Stay in the loop</h4>
           <p className="text-sm text-muted">New tasks and freelancers, every week.</p>
           <form
-            className="mt-3 flex gap-2"
+            className="mt-3 flex gap-2 max-w-xs"
             onSubmit={(e) => e.preventDefault()}
           >
             <input
               type="email"
               placeholder="you@email.com"
-              className="flex-1 min-w-0 rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              className="flex-1 min-w-0 h-8 rounded-lg border border-line px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
             />
             <button
               type="submit"
-              className="shrink-0 bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-4 rounded-lg transition-colors"
+              className="shrink-0 h-8 px-4 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-lg transition-colors"
             >
               Join
             </button>
