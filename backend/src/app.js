@@ -7,8 +7,10 @@ const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const swapRoutes = require('./routes/swaps');
+const taskRoutes = require('./routes/tasks');
+const proposalRoutes = require('./routes/proposals');
 const connectDB = require('./config/db');
-// Future phases will mount: tasks, proposals, payments, reviews
+// Future phases will mount: payments, reviews
 
 const app = express();
 
@@ -77,6 +79,8 @@ app.get('/api/health', (req, res) =>
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/swaps', swapRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/proposals', proposalRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

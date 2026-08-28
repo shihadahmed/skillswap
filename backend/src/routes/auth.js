@@ -99,9 +99,7 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', require('../middleware/auth'), async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select('-password');
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(publicUser(user));
+    res.json(publicUser(req.user));
   } catch (err) {
     console.error('\n❌ [GET /me ERROR]', err);
     res.status(500).json({ message: err.message });
