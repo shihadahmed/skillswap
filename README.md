@@ -1,61 +1,51 @@
 # SkillSwap
 
-A skill-exchange platform where users offer skills they know and request skills
-they want to learn. Built with **Next.js** (frontend) and **Express.js + MongoDB**
-(backend), all in JavaScript.
+A freelance micro-task marketplace (Fiverr / TaskHive style) where clients post small
+tasks, freelancers apply with proposals, and work is delivered and rated. Built with
+Next.js 14 (frontend) and Express + Mongoose (backend), deployed on Vercel.
 
-## Structure
+## Features (so far)
+- Email + Google (dummy) authentication with JWT stored in an HTTPOnly cookie.
+- Role-based accounts: client, freelancer, admin.
+- Tasks API: create, browse (search + category filter + pagination), update, delete.
+- Proposals: freelancers apply; clients accept one (auto-rejects the rest, marks the
+  task `in_progress`).
+- Role-guarded dashboards for client / freelancer / admin.
 
-```
-SkillSwap/
-├── backend/   # Express.js API + Mongoose models
-└── frontend/  # Next.js (App Router) client
-```
+## Tech stack
+- **Frontend:** Next.js 14 (App Router, JS), Tailwind CSS, Plus Jakarta Sans.
+- **Backend:** Express.js, Mongoose (MongoDB Atlas), custom JWT cookie auth.
+- **Styling:** Electric Indigo & Violet theme.
 
-## Prerequisites
+## Getting started
 
-- Node.js 18+
-- MongoDB (local `mongod` on `mongodb://127.0.0.1:27017` or MongoDB Atlas)
-- npm
+You need Node 18+ and a MongoDB Atlas connection string.
 
-## Setup
-
-### 1. Backend
 ```bash
+# Backend (terminal 1)
 cd backend
+cp .env.example .env        # then fill in MONGODB_URI, JWT_SECRET, etc.
 npm install
-# edit .env if needed (MONGODB_URI, JWT_SECRET, PORT)
-npm run dev      # starts on http://localhost:5000
-```
+npm run dev                 # http://localhost:5000
 
-### 2. Frontend (new terminal)
-```bash
+# Frontend (terminal 2)
 cd frontend
+cp .env.example .env.local  # set NEXT_PUBLIC_API_URL
 npm install
-npm run dev      # starts on http://localhost:3000
+npm run dev                 # http://localhost:3000
 ```
 
-Open http://localhost:3000 and sign up.
+## Project layout
+- `backend/src` — Express app, models, routes (`auth`, `users`, `swaps`, `tasks`,
+  `proposals`), `middleware/auth.js`, `config/db.js`, Vercel handler `api/index.js`.
+- `frontend/src` — Next.js app (`app/`, `components/`, `context/AuthContext.js`,
+  `lib/api.js`).
 
-## Features
+See `AGENTS.md` for the full architecture, API reference, and implementation roadmap.
 
-- User registration / login (JWT auth)
-- Profile with skills offered & wanted, bio, location, availability
-- Explore other users (search by name / skill / location)
-- Public profile view + send skill-swap requests
-- Dashboard: accept / decline / complete / cancel swap requests
+## Deployment
+Two Vercel projects from this repo:
+- Frontend → root `frontend`
+- Backend → root `backend` (with `vercel.json`)
 
-## API summary
-
-| Method | Endpoint                | Description                       |
-|--------|-------------------------|-----------------------------------|
-| POST   | /api/auth/register      | Create account                    |
-| POST   | /api/auth/login         | Login (returns JWT)               |
-| GET    | /api/auth/me           | Current user                      |
-| GET    | /api/users/explore      | List other users (optional `q`)   |
-| GET    | /api/users/:id          | Public profile                    |
-| PUT    | /api/users/me           | Update own profile                |
-| POST   | /api/swaps              | Create swap request               |
-| GET    | /api/swaps?role=        | sent / received / all             |
-| PATCH  | /api/swaps/:id          | Update status (accept/complete)   |
-| DELETE | /api/swaps/:id          | Cancel request                    |
+Set the environment variables from the `.env.example` files in each Vercel project.
