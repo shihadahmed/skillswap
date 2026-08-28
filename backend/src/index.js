@@ -8,6 +8,8 @@ process.on('uncaughtException', (err) =>
   console.error('\n❌ [UNCAUGHT EXCEPTION]', err)
 );
 const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -15,12 +17,14 @@ const swapRoutes = require('./routes/swaps');
 
 const app = express();
 
+app.use(helmet());
 app.use(
   cors({
     origin: true,
     credentials: true,
   })
 );
+app.use(cookieParser());
 app.use(express.json());
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));

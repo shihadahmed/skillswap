@@ -1,19 +1,29 @@
 import './globals.css';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+  display: 'swap',
+});
 
 export const metadata = {
-  title: 'SkillSwap - Exchange Skills with Others',
-  description: 'A platform to swap and learn skills from people around you.',
+  title: 'SkillSwap — Freelance Micro-Task Platform',
+  description:
+    'Get your tasks done by skilled freelancers. Post a task, receive proposals, hire and pay securely.',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className={jakarta.variable}>
+      <body className="font-sans bg-bg text-ink min-h-screen flex flex-col">
         <AuthProvider>
           <Navbar />
-          <main className="container">{children}</main>
+          <main className="flex-1">{children}</main>
+          <Footer />
         </AuthProvider>
       </body>
     </html>
