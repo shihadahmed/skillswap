@@ -93,7 +93,7 @@ export default function Footer() {
           <h4 className="font-semibold text-ink mb-3">Stay in the loop</h4>
           <p className="text-sm text-muted">New tasks and freelancers, every week.</p>
           <form
-            className="mt-3 flex gap-2 max-w-xs"
+            className="mt-3 flex items-stretch gap-2 max-w-xs"
             onSubmit={(e) => e.preventDefault()}
           >
             <input
@@ -103,7 +103,7 @@ export default function Footer() {
             />
             <button
               type="submit"
-              className="shrink-0 h-8 px-4 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-lg transition-colors"
+              className="shrink-0 h-8 px-4 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-lg border border-transparent transition-colors"
             >
               Join
             </button>
