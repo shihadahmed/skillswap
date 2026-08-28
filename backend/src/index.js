@@ -7,37 +7,9 @@ process.on('unhandledRejection', (reason) =>
 process.on('uncaughtException', (err) =>
   console.error('\n❌ [UNCAUGHT EXCEPTION]', err)
 );
-const cors = require('cors');
-const helmet = require('helmet');
-const cookieParser = require('cookie-parser');
+
+const app = require('./app');
 const connectDB = require('./config/db');
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const swapRoutes = require('./routes/swaps');
-
-const app = express();
-
-app.use(helmet());
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  })
-);
-app.use(cookieParser());
-app.use(express.json());
-
-app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/swaps', swapRoutes);
-
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ message: 'Internal server error' });
-});
-
-const PORT = process.env.PORT || 5000;
 const { exec } = require('child_process');
 
 const findPidOnPort = (port) =>
@@ -90,4 +62,8 @@ const startServer = async (port, attempt = 0) => {
   );
 };
 
-connectDB().then(() => startServer(PORT));
+const PORT = process.env.PORT || 5000;
+
+connectDB()
+  .then(() => startServer(PORT))
+  .catch(() => process.exit(1));
