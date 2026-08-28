@@ -8,10 +8,7 @@ router.get('/explore', auth, async (req, res) => {
     const { q, skill } = req.query;
     const filter = { _id: { $ne: req.userId } };
     if (skill) {
-      filter.$or = [
-        { 'skillsOffered.name': new RegExp(skill, 'i') },
-        { 'skillsWanted.name': new RegExp(skill, 'i') },
-      ];
+      filter.skills = new RegExp(skill, 'i');
     }
     let users = await User.find(filter).select('-password');
     if (q) {
@@ -19,9 +16,8 @@ router.get('/explore', auth, async (req, res) => {
       users = users.filter(
         (u) =>
           u.name.toLowerCase().includes(term) ||
-          u.location.toLowerCase().includes(term) ||
-          u.skillsOffered.some((s) => s.name.toLowerCase().includes(term)) ||
-          u.skillsWanted.some((s) => s.name.toLowerCase().includes(term))
+          (u.bio && u.bio.toLowerCase().includes(term)) ||
+          (u.skills || []).some((s) => s.toLowerCase().includes(term))
       );
     }
     res.json(users);
@@ -45,8 +41,7 @@ router.get('/:id', auth, async (req, res) => {
 router.put('/me', auth, async (req, res) => {
   try {
     const allowed = [
-      'name', 'location', 'bio', 'avatar', 'availability',
-      'skillsOffered', 'skillsWanted',
+      'name', 'bio', 'image', 'skills', 'hourlyRate',
     ];
     const updates = {};
     allowed.forEach((key) => {
