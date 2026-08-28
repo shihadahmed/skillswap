@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { dashboardPath } from '@/components/ProtectedRoute';
+import Logo from '@/components/Logo';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -25,14 +26,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 bg-surface/90 backdrop-blur border-b border-line">
       <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Brand */}
-        <Link href="/" onClick={close} className="flex items-center gap-2">
-          <span className="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-accent text-white font-bold">
-            S
-          </span>
-          <span className="text-lg font-extrabold tracking-tight">
-            Skill<span className="text-brand">Swap</span>
-          </span>
-        </Link>
+        <Logo onClick={close} />
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-8">
@@ -95,9 +89,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden border-t border-line bg-surface px-4 py-4 space-y-3">
-          <Link href="/" onClick={close} className={linkCls + ' block'}>
-            Home
-          </Link>
+          <Logo onClick={close} className="mb-2" />
           <Link href="/tasks" onClick={close} className={linkCls + ' block'}>
             Browse Tasks
           </Link>

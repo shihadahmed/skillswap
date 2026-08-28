@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import ProtectedRoute, { dashboardPath } from '@/components/ProtectedRoute';
 import { useAuth } from '@/context/AuthContext';
+import Logo from '@/components/Logo';
 
 const NAV = {
   client: [
@@ -40,14 +41,7 @@ function DashboardShell({ role }) {
     <div className="min-h-screen flex bg-bg">
       {/* Sidebar */}
       <aside className="w-64 shrink-0 border-r border-line bg-surface p-5 hidden md:block">
-        <Link href="/" className="flex items-center gap-2 mb-8">
-          <span className="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-accent text-white font-bold">
-            S
-          </span>
-          <span className="text-lg font-extrabold tracking-tight">
-            Skill<span className="text-brand">Swap</span>
-          </span>
-        </Link>
+        <Logo className="mb-8" />
 
         <div className="flex items-center gap-3 mb-6">
           <img

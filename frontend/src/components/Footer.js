@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeftRight } from 'lucide-react';
+import Logo from '@/components/Logo';
 
 const socials = [
   {
@@ -48,14 +48,7 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4 py-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {/* Brand */}
         <div>
-          <Link href="/" className="flex items-center gap-2">
-            <span className="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-brand to-accent text-white">
-              <ArrowLeftRight size={18} />
-            </span>
-            <span className="text-lg font-extrabold tracking-tight">
-              Skill<span className="text-brand">Swap</span>
-            </span>
-          </Link>
+          <Logo />
           <p className="mt-3 text-sm text-muted">
             The freelance marketplace for fast, one-time micro-tasks.
           </p>
