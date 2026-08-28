@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { dashboardPath } from '@/components/ProtectedRoute';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -51,7 +52,7 @@ export default function Navbar() {
           {user ? (
             <>
               <Link
-                href="/dashboard/client"
+                href={dashboardPath(user.role)}
                 className="text-muted hover:text-ink font-medium"
               >
                 Dashboard
@@ -104,16 +105,16 @@ export default function Navbar() {
             Freelancers
           </Link>
           <div className="pt-3 border-t border-line flex flex-col gap-3">
-            {user ? (
-              <>
-                <Link href="/dashboard/client" onClick={close} className={linkCls}>
-                  Dashboard
-                </Link>
-                <button onClick={handleLogout} className="text-left text-muted hover:text-ink font-medium">
-                  Logout
-                </button>
-              </>
-            ) : (
+              {user ? (
+                <>
+                  <Link href={dashboardPath(user.role)} onClick={close} className={linkCls}>
+                    Dashboard
+                  </Link>
+                  <button onClick={handleLogout} className="text-left text-muted hover:text-ink font-medium">
+                    Logout
+                  </button>
+                </>
+              ) : (
               <>
                 <Link href="/login" onClick={close} className={linkCls}>
                   Sign In
