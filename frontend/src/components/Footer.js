@@ -45,7 +45,7 @@ const socials = [
 export default function Footer() {
   return (
     <footer className="border-t border-line bg-surface">
-      <div className="max-w-6xl mx-auto px-4 py-12 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="max-w-6xl mx-auto px-4 py-12 grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_2fr]">
         {/* Brand */}
         <div>
           <Logo />
@@ -93,17 +93,17 @@ export default function Footer() {
           <h4 className="font-semibold text-ink mb-3">Stay in the loop</h4>
           <p className="text-sm text-muted">New tasks and freelancers, every week.</p>
           <form
-            className="mt-3 flex flex-col gap-2"
+            className="mt-3 flex gap-2"
             onSubmit={(e) => e.preventDefault()}
           >
             <input
               type="email"
               placeholder="you@email.com"
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              className="flex-1 min-w-0 rounded-lg border border-line px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
             />
             <button
               type="submit"
-              className="w-full bg-brand hover:bg-brand-hover text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+              className="shrink-0 bg-brand hover:bg-brand-hover text-white text-sm font-semibold px-4 rounded-lg transition-colors"
             >
               Join
             </button>
