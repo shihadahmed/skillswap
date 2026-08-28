@@ -99,7 +99,7 @@ export default function Footer() {
             <input
               type="email"
               placeholder="you@email.com"
-              className="flex-1 min-w-0 h-8 rounded-lg border border-line px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              className="flex-1 min-w-0 m-0 h-8 rounded-lg border border-line px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
             />
             <button
               type="submit"
