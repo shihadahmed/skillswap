@@ -295,6 +295,146 @@ function ClientDashboard() {
   );
 }
 
+function FreelancerDashboard() {
+  const { logout } = useAuth();
+  const [proposals, setProposals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get('/proposals/mine')
+      .then((d) => {
+        if (active) setProposals(d.proposals || []);
+      })
+      .catch(() => {
+        if (active) setProposals([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const stats = {
+    sent: proposals.length,
+    pending: proposals.filter((p) => p.status === 'pending').length,
+    accepted: proposals.filter((p) => p.status === 'accepted').length,
+    earnings: proposals
+      .filter((p) => p.status === 'accepted')
+      .reduce((s, p) => s + (p.proposed_budget || 0), 0),
+  };
+
+  const statCards = [
+    { label: 'Proposals Sent', value: stats.sent },
+    { label: 'Pending', value: stats.pending },
+    { label: 'Accepted', value: stats.accepted },
+    { label: 'Earnings (est.)', value: fmtBudget(stats.earnings) },
+  ];
+
+  return (
+    <main className="flex-1 p-6 md:p-10">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-ink">
+              Freelancer Dashboard
+            </h1>
+            <p className="text-muted mt-1">
+              Track your proposals and find new tasks to apply for.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/tasks"
+              className="bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-glow transition-colors"
+            >
+              Browse Tasks
+            </Link>
+            <button
+              onClick={logout}
+              className="text-sm text-muted hover:text-ink font-medium"
+            >
+              Log out
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 mt-8">
+          {statCards.map((s) => (
+            <div
+              key={s.label}
+              className="bg-surface border border-line rounded-2xl p-4 shadow-soft"
+            >
+              <div className="text-xs text-muted">{s.label}</div>
+              <div className="text-2xl font-extrabold text-ink mt-1">
+                {s.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10">
+          <h2 className="text-lg font-bold text-ink mb-4">My Proposals</h2>
+
+          {loading ? (
+            <p className="text-muted text-sm">Loading your proposals…</p>
+          ) : proposals.length === 0 ? (
+            <div className="bg-surface border border-line rounded-2xl p-10 text-center">
+              <p className="text-muted">
+                You haven&apos;t submitted any proposals yet.
+              </p>
+              <Link
+                href="/tasks"
+                className="inline-block mt-4 text-brand font-semibold text-sm"
+              >
+                Browse tasks →
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {proposals.map((p) => (
+                <Link
+                  key={p._id}
+                  href={`/tasks/${p.task_id}`}
+                  className="block bg-surface border border-line rounded-2xl p-4 hover:border-brand/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-ink truncate">
+                        {p.task?.title || 'Task'}
+                      </p>
+                      <p className="text-sm text-muted mt-0.5">
+                        {fmtBudget(p.proposed_budget)} · {p.estimated_days} day
+                        {p.estimated_days === 1 ? '' : 's'}
+                        {p.task?.status ? ` · Task: ${p.task.status}` : ''}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                        statusStyles[p.status] || statusStyles.pending
+                      }`}
+                    >
+                      {p.status}
+                    </span>
+                  </div>
+                  {p.cover_note && (
+                    <p className="mt-3 text-sm text-muted leading-relaxed line-clamp-2">
+                      {p.cover_note}
+                    </p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function PlaceholderDashboard({ role, logout }) {
   const TITLES = {
     freelancer: 'Freelancer Dashboard',
@@ -361,11 +501,18 @@ function DashboardShell({ role }) {
               My Tasks
             </div>
           )}
+          {role === 'freelancer' && (
+            <div className="rounded-xl px-3 py-2 text-sm font-medium text-muted">
+              My Proposals
+            </div>
+          )}
         </nav>
       </aside>
 
       {role === 'client' ? (
         <ClientDashboard />
+      ) : role === 'freelancer' ? (
+        <FreelancerDashboard />
       ) : (
         <PlaceholderDashboard role={role} logout={logout} />
       )}
