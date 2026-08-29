@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { API_URL } from '@/lib/api';
+import ProposalForm from '@/components/ProposalForm';
+import ProposalManager from '@/components/ProposalManager';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,17 +114,17 @@ export default async function TaskDetailPage({ params }) {
           </div>
         </div>
 
-        {/* Apply CTA (full proposal flow lands in Phase 6) */}
-        <div className="mt-8">
-          <Link
-            href="/register"
-            className="inline-block bg-brand hover:bg-brand-hover text-white px-6 py-3 rounded-xl font-semibold shadow-glow transition-colors"
-          >
-            Apply to this task
-          </Link>
-          <p className="mt-2 text-xs text-muted">
-            Freelancers can send a proposal after signing in.
-          </p>
+        {/* Apply / manage area */}
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
+          <div>
+            <ProposalForm taskId={task._id} taskTitle={task.title} />
+          </div>
+          <div className="lg:pt-0">
+            <ProposalManager
+              taskId={task._id}
+              ownerEmail={task.client_email}
+            />
+          </div>
         </div>
       </div>
     </div>
