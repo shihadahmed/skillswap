@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { API_URL } from '@/lib/api';
 import ProposalForm from '@/components/ProposalForm';
 import ProposalManager from '@/components/ProposalManager';
@@ -137,7 +136,6 @@ export default async function TaskDetailPage({ params }) {
 
   const client = task.client || {};
   const clientName = client.name || task.client_email || 'Client';
-  const isAuthed = !!cookies().get('ss_token');
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -287,8 +285,6 @@ export default async function TaskDetailPage({ params }) {
             </div>
           </div>
 
-          {isAuthed && (
-            <>
               <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-3">
                 <Stat
                   icon={<CalendarIcon />}
@@ -334,8 +330,6 @@ export default async function TaskDetailPage({ params }) {
                     )}
                   </div>
                 )}
-            </>
-          )}
         </div>
 
         {/* Apply / manage area */}
