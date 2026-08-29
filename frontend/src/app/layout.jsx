@@ -1,8 +1,7 @@
 import './globals.css';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import ConditionalChrome from '@/components/ConditionalChrome';
 import Toaster from '@/components/Toaster';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -22,9 +21,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={jakarta.variable}>
       <body className="font-sans bg-bg text-ink min-h-screen flex flex-col">
         <AuthProvider>
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <ConditionalChrome>{children}</ConditionalChrome>
           <Toaster />
         </AuthProvider>
       </body>
