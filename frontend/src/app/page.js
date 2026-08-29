@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import Hero from '@/components/Hero';
+import TaskCard from '@/components/TaskCard';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 const steps = [
   {
@@ -27,7 +30,20 @@ const categories = [
   { name: 'Other', icon: '✨' },
 ];
 
-export default function Home() {
+async function getLatestTasks() {
+  try {
+    const res = await fetch(`${API}/tasks?limit=6`, { cache: 'no-store' });
+    if (!res.ok) return { tasks: [], total: 0 };
+    const data = await res.json();
+    return { tasks: data.tasks || [], total: data.total || 0 };
+  } catch {
+    return { tasks: [], total: 0 };
+  }
+}
+
+export default async function Home() {
+  const { tasks, total } = await getLatestTasks();
+
   return (
     <div>
       <Hero />
@@ -50,6 +66,46 @@ export default function Home() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Latest tasks (real data) */}
+      <section className="max-w-6xl mx-auto px-4 pb-12">
+        <div className="flex items-end justify-between gap-4 mb-8">
+          <div>
+            <h2 className="text-3xl font-extrabold text-ink">Latest tasks</h2>
+            <p className="mt-2 text-muted">
+              {total > 0
+                ? `${total} task${total === 1 ? '' : 's'} waiting for the right freelancer`
+                : 'Fresh opportunities posted by clients'}
+            </p>
+          </div>
+          <Link
+            href="/tasks"
+            className="shrink-0 text-brand hover:text-brand-hover font-semibold text-sm"
+          >
+            Browse all →
+          </Link>
+        </div>
+
+        {tasks.length === 0 ? (
+          <div className="bg-surface border border-line rounded-2xl p-10 text-center">
+            <p className="text-muted">
+              No tasks yet — be the first to post one!
+            </p>
+            <Link
+              href="/register"
+              className="inline-block mt-4 bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl font-semibold transition-colors"
+            >
+              Get Started
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {tasks.map((t) => (
+              <TaskCard key={t._id} task={t} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Popular categories */}

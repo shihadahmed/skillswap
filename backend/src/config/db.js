@@ -1,4 +1,11 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+// Local dev fallback: some routers' DNS can't resolve MongoDB Atlas SRV records.
+// Use public resolvers only in dev so Vercel production DNS is unaffected.
+if (process.env.NODE_ENV !== 'production') {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+}
 
 // Reuse a single connection across Vercel serverless invocations.
 const cached = global._mongooseCache || (global._mongooseCache = {});
