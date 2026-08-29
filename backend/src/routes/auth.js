@@ -2,6 +2,7 @@ const router = require('express').Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Freelancer = require('../models/Freelancer');
 
 const signToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -60,6 +61,22 @@ router.post('/register', async (req, res) => {
       image: image || '',
       role: safeRole,
     });
+
+    // When someone registers as a freelancer, also create their profile in the
+    // dedicated freelancers collection so it shows up on the browse page.
+    if (safeRole === 'freelancer') {
+      try {
+        await Freelancer.create({
+          id: 'fl_' + Math.random().toString(36).slice(2, 8),
+          name: user.name,
+          avatar: user.image || '',
+          skills: user.skills || [],
+          bio: user.bio || '',
+        });
+      } catch (e) {
+        console.error('Freelancer profile auto-create failed:', e.message);
+      }
+    }
 
     const token = setAuthCookie(res, user._id);
     res.status(201).json({ token, user: publicUser(user) });

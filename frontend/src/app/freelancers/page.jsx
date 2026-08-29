@@ -1,25 +1,33 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
-import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import FreelancerCard from '@/components/FreelancerCard';
 
+const PAGE_SIZE = 9;
+
 export default function FreelancersPage() {
-  const { user, loading: authLoading } = useAuth();
-  const [users, setUsers] = useState([]);
-  const [q, setQ] = useState('');
+  const [freelancers, setFreelancers] = useState([]);
+  const [input, setInput] = useState('');
+  const [applied, setApplied] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const load = useCallback(async (query = '') => {
+  const load = useCallback(async (query = '', pageNum = 1) => {
     setLoading(true);
     setError('');
     try {
-      const url = `/users/explore${query ? `?q=${encodeURIComponent(query)}` : ''}`;
+      const url = `/freelancers?search=${encodeURIComponent(
+        query
+      )}&page=${pageNum}&limit=${PAGE_SIZE}`;
       const data = await api.get(url);
-      setUsers(data.filter((u) => u.role === 'freelancer'));
+      setFreelancers(data.freelancers || []);
+      setPage(data.page || 1);
+      setTotalPages(data.totalPages || 1);
+      setTotal(data.total || 0);
     } catch (err) {
       setError(err.message || 'Could not load freelancers.');
     } finally {
@@ -28,33 +36,14 @@ export default function FreelancersPage() {
   }, []);
 
   useEffect(() => {
-    if (user) load();
-  }, [user, load]);
+    load(applied, page);
+  }, [applied, page, load]);
 
-  if (authLoading) {
-    return (
-      <div className="min-h-[60vh] grid place-items-center text-muted">
-        Loading…
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="max-w-6xl mx-auto px-4 py-20 text-center">
-        <h1 className="text-3xl font-extrabold text-ink">Browse Freelancers</h1>
-        <p className="mt-3 text-muted">
-          Sign in to discover skilled freelancers and invite them to your tasks.
-        </p>
-        <Link
-          href="/login"
-          className="inline-block mt-5 bg-brand hover:bg-brand-hover text-white px-6 py-3 rounded-xl font-semibold shadow-glow transition-colors"
-        >
-          Sign In
-        </Link>
-      </div>
-    );
-  }
+  const onSearch = (e) => {
+    e.preventDefault();
+    setApplied(input);
+    setPage(1);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
@@ -66,16 +55,13 @@ export default function FreelancersPage() {
       </div>
 
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          load(q);
-        }}
+        onSubmit={onSearch}
         className="flex gap-2 max-w-xl mb-8"
       >
         <input
           type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Search by name, skill or keyword…"
           className="flex-1 min-w-0 h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
         />
@@ -95,16 +81,42 @@ export default function FreelancersPage() {
 
       {loading ? (
         <p className="text-muted">Loading freelancers…</p>
-      ) : users.length === 0 ? (
+      ) : freelancers.length === 0 ? (
         <div className="bg-surface border border-line rounded-2xl p-10 text-center">
           <p className="text-muted">No freelancers found.</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {users.map((u) => (
-            <FreelancerCard key={u._id} user={u} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {freelancers.map((f) => (
+              <FreelancerCard key={f.id} freelancer={f} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="mt-10 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="px-4 h-10 rounded-xl border border-line bg-surface text-sm font-semibold text-ink disabled:opacity-40 hover:border-brand/50 transition-colors"
+              >
+                ← Prev
+              </button>
+              <span className="text-sm text-muted">
+                Page {page} of {totalPages} · {total} freelancers
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="px-4 h-10 rounded-xl border border-line bg-surface text-sm font-semibold text-ink disabled:opacity-40 hover:border-brand/50 transition-colors"
+              >
+                Next →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
