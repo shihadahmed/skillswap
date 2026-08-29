@@ -10,16 +10,10 @@ const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
 const clientView = (u) =>
   u ? { name: u.name, image: u.image, email: u.email } : null;
 
-// Attach a lightweight client object (name + image) to each task
+// Attach a client object to each task. The seeded/real data already embeds a
+// rich `client`, so we preserve it; otherwise we leave the document as-is.
 async function attachClients(tasks) {
-  const emails = [...new Set(tasks.map((t) => t.client_email).filter(Boolean))];
-  if (emails.length === 0) return tasks;
-  const users = await User.find({ email: { $in: emails } }).select('name email image');
-  const map = new Map(users.map((u) => [u.email, clientView(u)]));
-  return tasks.map((t) => {
-    const obj = t.toObject ? t.toObject() : t;
-    return { ...obj, client: map.get(t.client_email) || null };
-  });
+  return tasks.map((t) => (t.toObject ? t.toObject() : t));
 }
 
 // GET /api/tasks — public browse with search, category filter, pagination
@@ -101,7 +95,8 @@ router.post('/', auth, requireRole('client'), async (req, res) => {
       category: CATEGORIES.includes(category) ? category : 'Other',
       description: description || '',
       budget,
-      deadline: deadline ? new Date(deadline) : undefined,
+      deadline: deadline ? String(deadline) : '',
+      posted: new Date().toLocaleDateString('en-GB'),
       client_email: req.user.email,
     });
     res.status(201).json({ task });

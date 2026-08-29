@@ -9,8 +9,9 @@ const taskSchema = new mongoose.Schema(
       default: 'Other',
     },
     description: { type: String, default: '' },
-    budget: { type: Number, required: true, min: 0 },
-    deadline: { type: Date },
+    budget: { type: mongoose.Schema.Types.Mixed },
+    deadline: { type: String, default: '' },
+    posted: { type: String, default: '' },
     client_email: { type: String, required: true, lowercase: true, trim: true },
     status: {
       type: String,
@@ -18,6 +19,7 @@ const taskSchema = new mongoose.Schema(
       default: 'open',
     },
     deliverable_url: { type: String, default: '' },
+    client: { type: mongoose.Schema.Types.Mixed },
   },
   { timestamps: true }
 );

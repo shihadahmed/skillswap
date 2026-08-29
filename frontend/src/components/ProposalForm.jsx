@@ -20,9 +20,12 @@ export default function ProposalForm({ taskId, taskTitle }) {
 
   if (!user) {
     return (
-      <div className="bg-bg border border-line rounded-xl p-5 text-center">
-        <p className="text-muted text-sm">
-          <Link href="/login" className="text-brand font-semibold hover:underline">
+      <div className="flex justify-center mt-2">
+        <p className="text-center text-muted text-sm">
+          <Link
+            href="/login"
+            className="text-brand hover:underline font-medium"
+          >
             Sign in
           </Link>{' '}
           as a freelancer to send a proposal.
