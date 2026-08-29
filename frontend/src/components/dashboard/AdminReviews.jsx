@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
+import Pagination from '@/components/Pagination';
 
 export default function AdminReviews() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -26,6 +28,14 @@ export default function AdminReviews() {
       active = false;
     };
   }, []);
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(reviews.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedReviews = reviews.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
 
   const remove = async (r) => {
     if (typeof window === 'undefined') return;
@@ -65,7 +75,7 @@ export default function AdminReviews() {
               </tr>
             </thead>
             <tbody>
-              {reviews.map((r) => (
+                 {pagedReviews.map((r) => (
                 <tr key={r._id} className="border-b border-line last:border-0">
                   <td className="py-3 px-4 text-muted truncate max-w-[160px]">
                     {r.reviewer_email}
@@ -97,9 +107,10 @@ export default function AdminReviews() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      )}
+              </table>
+            <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
 import { fmtBudget, statusStyles, statusLabel } from '@/lib/format';
+import Pagination from '@/components/Pagination';
 import Modal from '@/components/dashboard/Modal';
 import ProposalManager from '@/components/ProposalManager';
 import TaskCheckout from '@/components/TaskCheckout';
@@ -25,6 +26,7 @@ export default function ClientTasks() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,6 +57,11 @@ export default function ClientTasks() {
     { label: 'In Progress', value: stats.progress },
     { label: 'Total Spent', value: fmtBudget(stats.spent) },
   ];
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = tasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const openEdit = (t) => {
     setEditTask(t);
@@ -134,7 +141,7 @@ export default function ClientTasks() {
           </div>
         ) : (
           <div className="space-y-3">
-            {tasks.map((t) => (
+            {paged.map((t) => (
               <div
                 key={t._id}
                 className="bg-surface border border-line rounded-2xl p-4"
@@ -196,6 +203,7 @@ export default function ClientTasks() {
                 )}
               </div>
             ))}
+          <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
           </div>
         )}
       </div>

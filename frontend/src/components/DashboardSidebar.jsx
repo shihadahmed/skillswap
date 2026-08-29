@@ -46,7 +46,7 @@ export default function DashboardSidebar({ children }) {
 
   return (
     <div className="min-h-screen flex bg-bg">
-      <aside className="w-64 shrink-0 border-r border-line bg-surface p-5 hidden md:flex md:flex-col">
+      <aside className="w-64 shrink-0 border-r border-line bg-surface p-5 hidden md:flex md:flex-col sticky top-0 h-screen self-start">
         <Logo className="mb-8" />
 
         <nav className="space-y-1 flex-1">

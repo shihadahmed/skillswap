@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
 import { fmtBudget, statusStyles, statusLabel } from '@/lib/format';
+import Pagination from '@/components/Pagination';
 
 export default function FreelancerProposals() {
   const { user, updateUser } = useAuth();
@@ -16,6 +17,7 @@ export default function FreelancerProposals() {
   const [editing, setEditing] = useState(false);
   const [pform, setPform] = useState({ bio: '', skills: '', image: '' });
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -59,6 +61,14 @@ export default function FreelancerProposals() {
   ];
 
   const activeJobs = proposals.filter((p) => p.status === 'accepted');
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(proposals.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedProposals = proposals.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
 
   const saveProfile = async (e) => {
     e.preventDefault();
@@ -125,7 +135,7 @@ export default function FreelancerProposals() {
                   </tr>
                 </thead>
                 <tbody>
-                  {proposals.map((p) => (
+                  {pagedProposals.map((p) => (
                     <tr key={p._id} className="border-b border-line last:border-0">
                       <td className="py-3 px-4">
                         <Link
@@ -157,6 +167,7 @@ export default function FreelancerProposals() {
                   ))}
                 </tbody>
               </table>
+            <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
             </div>
           )}
 

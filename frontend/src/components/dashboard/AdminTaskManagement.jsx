@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
 import { fmtBudget, statusStyles, statusLabel } from '@/lib/format';
+import Pagination from '@/components/Pagination';
 import Modal from '@/components/dashboard/Modal';
 
 const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
@@ -25,6 +26,7 @@ export default function AdminTaskManagement() {
     status: 'open',
   });
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,6 +42,11 @@ export default function AdminTaskManagement() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedTasks = tasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const openCreate = () => {
     setForm({
@@ -159,7 +166,7 @@ export default function AdminTaskManagement() {
               </tr>
             </thead>
             <tbody>
-              {tasks.map((t) => (
+               {pagedTasks.map((t) => (
                 <tr key={t._id} className="border-b border-line last:border-0">
                   <td className="py-3 px-4 font-medium text-ink max-w-[220px] truncate">
                     {t.title}
@@ -196,9 +203,10 @@ export default function AdminTaskManagement() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      )}
+              </table>
+            <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
 
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Create task">
         <TaskForm

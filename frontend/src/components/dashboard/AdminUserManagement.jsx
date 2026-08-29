@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
 import { fmtBudget, statusStyles, statusLabel } from '@/lib/format';
+import Pagination from '@/components/Pagination';
 import Modal from '@/components/dashboard/Modal';
 
 const ROLES = ['client', 'freelancer', 'admin'];
@@ -25,6 +26,7 @@ export default function AdminUserManagement() {
     isBlocked: false,
   });
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,6 +42,11 @@ export default function AdminUserManagement() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedUsers = users.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const openAdd = () => {
     setForm({
@@ -178,7 +185,7 @@ export default function AdminUserManagement() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+               {pagedUsers.map((u) => (
                 <tr key={u._id} className="border-b border-line last:border-0">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
@@ -225,9 +232,10 @@ export default function AdminUserManagement() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      )}
+              </table>
+            <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
 
       <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add user">
         <UserForm

@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { fmtBudget } from '@/lib/format';
+import Pagination from '@/components/Pagination';
 
 export default function AdminTransactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -25,6 +27,14 @@ export default function AdminTransactions() {
       active = false;
     };
   }, []);
+
+  const PAGE_SIZE = 20;
+  const totalPages = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pagedTransactions = transactions.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE
+  );
 
   return (
     <div>
@@ -48,7 +58,7 @@ export default function AdminTransactions() {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx) => (
+               {pagedTransactions.map((tx) => (
                 <tr key={tx._id} className="border-b border-line last:border-0">
                   <td className="py-3 px-4 text-muted truncate max-w-[160px]">
                     {tx.client_email}
@@ -68,9 +78,10 @@ export default function AdminTransactions() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      )}
+              </table>
+            <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
     </div>
   );
 }
