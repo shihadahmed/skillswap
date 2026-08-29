@@ -239,3 +239,24 @@ label {
 .Toastify__progress-bar {
   border-radius: 0 0 12px 12px;
 }
+
+/* ---------- Global responsive safety ----------
+   Prevent accidental horizontal scroll without breaking sticky sidebars
+   (use `clip`, not `hidden`, so the scroll container isn't promoted). */
+html {
+  overflow-x: clip;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Stack two-up form grids on the smallest screens. */
+@media (max-width: 380px) {
+  .grid.grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}

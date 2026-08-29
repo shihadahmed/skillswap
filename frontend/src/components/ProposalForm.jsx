@@ -105,7 +105,7 @@ export default function ProposalForm({ taskId, taskTitle }) {
         Tell the client why you’re the right fit.
       </p>
 
-      <div className="grid grid-cols-2 gap-4 mt-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
         <div>
           <label className="block text-sm font-medium text-ink mb-1">
             Your budget ($)
