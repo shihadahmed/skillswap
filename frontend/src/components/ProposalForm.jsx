@@ -18,12 +18,15 @@ export default function ProposalForm({ taskId, taskTitle }) {
     return <div className="h-6" />;
   }
 
-  if (!user) {
+   if (!user) {
     return (
       <div className="flex justify-center mt-2">
         <p className="text-center text-muted text-sm">
           <Link
             href="/login"
+            onClick={() =>
+              toast.warn('Please log in to submit a proposal or post a task.')
+            }
             className="text-brand hover:underline font-medium"
           >
             Sign in
@@ -67,12 +70,8 @@ export default function ProposalForm({ taskId, taskTitle }) {
     e.preventDefault();
     const proposed_budget = Number(budget);
     const estimated_days = Number(days);
-    if (!proposed_budget || proposed_budget <= 0) {
-      toast.error('Please enter a valid proposed budget.');
-      return;
-    }
-    if (!estimated_days || estimated_days < 1) {
-      toast.error('Please enter an estimated number of days (min 1).');
+    if (!proposed_budget || proposed_budget <= 0 || !estimated_days || estimated_days < 1) {
+      toast.error('Please provide a valid bid amount and estimated days.');
       return;
     }
     setSubmitting(true);
@@ -82,10 +81,15 @@ export default function ProposalForm({ taskId, taskTitle }) {
         estimated_days,
         cover_note: note,
       });
-      toast.success('Proposal sent! The client will review your application.');
+      toast.success('Proposal submitted successfully!');
       setDone(true);
     } catch (err) {
-      toast.error(err.message || 'Could not submit proposal.');
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('already')) {
+        toast.error('You have already submitted a proposal for this task.');
+      } else {
+        toast.error(err.message || 'Could not submit proposal.');
+      }
     } finally {
       setSubmitting(false);
     }

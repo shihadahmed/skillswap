@@ -87,7 +87,7 @@ export default function ClientTasks() {
         deadline: form.deadline,
         description: form.description,
       });
-      toast.success('Task updated.');
+      toast.success('Task details updated successfully.');
       setEditTask(null);
       await load();
     } catch (err) {
@@ -103,10 +103,15 @@ export default function ClientTasks() {
     if (!window.confirm('Delete this task? This cannot be undone.')) return;
     try {
       await api.del(`/tasks/${t._id}`);
-      toast.success('Task deleted.');
+      toast.success('Task deleted successfully.');
       await load();
     } catch (err) {
-      toast.error(err.message || 'Delete failed.');
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('proposal') || msg.includes('in progress')) {
+        toast.error('Cannot delete a task that has approved proposals or is in progress.');
+      } else {
+        toast.error(err.message || 'Delete failed.');
+      }
     }
   };
 

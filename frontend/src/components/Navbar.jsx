@@ -47,11 +47,36 @@ export default function Navbar() {
             <>
               <Link
                 href={dashboardPath(user.role)}
-                className="text-muted hover:text-ink font-medium"
+                className="inline-flex items-center gap-2 text-muted hover:text-ink font-medium transition-colors"
               >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                </svg>
                 Dashboard
               </Link>
-              <button onClick={handleLogout} className="text-muted hover:text-ink font-medium">
+
+              <span className="h-9 w-9 rounded-full bg-brand/10 grid place-items-center overflow-hidden border border-line">
+                {user.image ? (
+                  <img src={user.image} alt={user.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-brand font-bold">
+                    {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </span>
+                )}
+              </span>
+
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 text-muted hover:text-ink font-medium transition-colors"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="M16 17l5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
                 Logout
               </button>
             </>
@@ -99,12 +124,34 @@ export default function Navbar() {
           <div className="pt-3 border-t border-line flex flex-col gap-3">
               {user ? (
                 <>
-                  <Link href={dashboardPath(user.role)} onClick={close} className={linkCls}>
+                  <Link href={dashboardPath(user.role)} onClick={close} className={linkCls + ' flex items-center gap-2'}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="7" height="7" rx="1" />
+                      <rect x="14" y="3" width="7" height="7" rx="1" />
+                      <rect x="14" y="14" width="7" height="7" rx="1" />
+                      <rect x="3" y="14" width="7" height="7" rx="1" />
+                    </svg>
                     Dashboard
                   </Link>
-                  <button onClick={handleLogout} className="text-left text-muted hover:text-ink font-medium">
-                    Logout
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="h-9 w-9 rounded-full bg-brand/10 grid place-items-center overflow-hidden border border-line">
+                      {user.image ? (
+                        <img src={user.image} alt={user.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-brand font-bold">
+                          {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </span>
+                      )}
+                    </span>
+                    <button onClick={handleLogout} className="text-left text-muted hover:text-ink font-medium flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <path d="M16 17l5-5-5-5" />
+                        <path d="M21 12H9" />
+                      </svg>
+                      Logout
+                    </button>
+                  </div>
                 </>
               ) : (
               <>

@@ -218,3 +218,24 @@ label {
 .animate-floaty {
   animation: floaty 5s ease-in-out infinite;
 }
+
+/* ---------- react-toastify overrides ----------
+   Tailwind's preflight resets borders/box-sizing which can break toastify's
+   default look, so we re-assert the essential styles here. */
+.Toastify__toast {
+  border-width: 1px;
+  border-style: solid;
+}
+.Toastify__toast-body {
+  font-family: inherit;
+}
+.Toastify__close-button {
+  color: inherit;
+  opacity: 0.7;
+}
+.Toastify__close-button:hover {
+  opacity: 1;
+}
+.Toastify__progress-bar {
+  border-radius: 0 0 12px 12px;
+}

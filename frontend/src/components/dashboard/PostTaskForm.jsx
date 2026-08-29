@@ -21,6 +21,11 @@ export default function PostTaskForm({ onCreated }) {
     e.preventDefault();
     setSubmitting(true);
     setError('');
+    if (!form.title.trim() || !form.budget || !form.deadline) {
+      toast.error('Please fill in all required fields properly.');
+      setSubmitting(false);
+      return;
+    }
     try {
       await api.post('/tasks', {
         title: form.title,
@@ -29,7 +34,7 @@ export default function PostTaskForm({ onCreated }) {
         budget: Number(form.budget),
         deadline: form.deadline,
       });
-      toast.success('Task posted successfully.');
+      toast.success('Task published successfully!');
       setForm({
         title: '',
         category: 'Other',

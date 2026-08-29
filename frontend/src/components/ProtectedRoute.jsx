@@ -3,6 +3,7 @@
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { toast } from 'react-toastify';
 
 export function dashboardPath(role) {
   if (role === 'admin') return '/dashboard/admin';
@@ -21,6 +22,7 @@ export default function ProtectedRoute({ children, roles }) {
       return;
     }
     if (roles && !roles.includes(user.role)) {
+      toast.error('Access denied! You do not have permission to view this dashboard.');
       router.replace(dashboardPath(user.role));
     }
   }, [loading, user, roles, router]);

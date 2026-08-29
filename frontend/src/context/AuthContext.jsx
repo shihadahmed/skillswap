@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext(null);
 
@@ -57,6 +58,7 @@ export function AuthProvider({ children }) {
       // ignore network errors on logout
     }
     setUser(null);
+    toast.info('Logged out successfully.');
   };
 
   const updateUser = (patch) => setUser((u) => (u ? { ...u, ...patch } : u));

@@ -7,6 +7,7 @@ const proposalSchema = new mongoose.Schema(
     proposed_budget: { type: Number, required: true, min: 0 },
     estimated_days: { type: Number, required: true, min: 1 },
     cover_note: { type: String, default: '' },
+    deliverable_url: { type: String, default: '' },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'rejected'],

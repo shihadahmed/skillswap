@@ -18,6 +18,8 @@ export default function FreelancerProposals() {
   const [pform, setPform] = useState({ bio: '', skills: '', image: '' });
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(1);
+  const [deliverId, setDeliverId] = useState(null);
+  const [deliverUrl, setDeliverUrl] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,6 +92,20 @@ export default function FreelancerProposals() {
       toast.error(err.message || 'Update failed.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deliver = async (p, url) => {
+    if (!/^https?:\/\/.+/.test(url)) {
+      toast.error('Please provide a valid URL for your deliverable.');
+      return;
+    }
+    try {
+      await api.post(`/proposals/${p._id}/deliver`, { deliverable_url: url });
+      toast.success('Deliverable submitted and project marked as completed!');
+      await load();
+    } catch (err) {
+      toast.error(err.message || 'Could not submit deliverable.');
     }
   };
 
@@ -210,6 +226,59 @@ export default function FreelancerProposals() {
                         Deadline: {p.task.deadline}
                       </p>
                     )}
+
+                    <div className="mt-4 border-t border-line pt-4">
+                      {deliverId === p._id ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            deliver(p, deliverUrl);
+                            setDeliverId(null);
+                            setDeliverUrl('');
+                          }}
+                          className="space-y-2"
+                        >
+                          <label className="block text-xs font-medium text-muted">
+                            Deliverable URL
+                          </label>
+                          <input
+                            autoFocus
+                            value={deliverUrl}
+                            onChange={(e) => setDeliverUrl(e.target.value)}
+                            placeholder="https://…"
+                            className="w-full h-10 rounded-xl border border-line bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="submit"
+                              className="bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-xl text-sm font-semibold"
+                            >
+                              Submit deliverable
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeliverId(null);
+                                setDeliverUrl('');
+                              }}
+                              className="border border-line text-muted hover:text-ink px-4 py-2 rounded-xl text-sm font-semibold"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setDeliverId(p._id);
+                            setDeliverUrl(p.deliverable_url || '');
+                          }}
+                          className="bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-xl text-sm font-semibold"
+                        >
+                          {p.deliverable_url ? 'Update deliverable' : 'Submit deliverable'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

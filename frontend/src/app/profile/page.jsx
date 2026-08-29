@@ -52,10 +52,10 @@ function Profile() {
       });
       updateUser(updated);
       setMsg('Profile saved!');
-      toast.success('Profile saved!');
+      toast.success('Profile details updated successfully!');
     } catch (err) {
       setMsg(err.message);
-      toast.error(err.message);
+      toast.error('Failed to update profile details.');
     } finally {
       setBusy(false);
     }

@@ -18,27 +18,50 @@ async function attachClients(tasks) {
 }
 
 // Attach a proposals_count to each task based on its proposals.
+// Match is type-agnostic: task_id may be stored as an ObjectId or a String
+// in the proposals collection, so we match both forms.
 async function withProposalCounts(tasks) {
   if (!tasks.length) return tasks;
-  const ids = tasks.map((t) => t._id);
+  const objIds = tasks.map((t) => t._id);
+  const strIds = tasks.map((t) => t._id.toString());
   const counts = await Proposal.aggregate([
-    { $match: { task_id: { $in: ids } } },
-    { $group: { _id: '$task_id', n: { $sum: 1 } } },
+    {
+      $match: {
+        $or: [
+          { task_id: { $in: objIds } },
+          { task_id: { $in: strIds } },
+        ],
+      },
+    },
+    { $group: { _id: { $toString: '$task_id' }, n: { $sum: 1 } } },
   ]);
-  const map = new Map(counts.map((c) => [c._id.toString(), c.n]));
+  const map = new Map(counts.map((c) => [c._id, c.n]));
   return tasks.map((t) => {
     const obj = t.toObject ? t.toObject() : t;
-    return { ...obj, proposals_count: map.get(t._id.toString()) || 0 };
+    const key = t._id.toString();
+    const dynamic = map.get(key) || 0;
+    const stored = obj.proposals_count;
+    // Prefer a real stored proposals_count (seed/demo data); only fall back to
+    // the live proposal count when the field is absent.
+    const proposals_count = typeof stored === 'number' ? stored : dynamic;
+    return { ...obj, proposals_count };
   });
 }
 
 // GET /api/tasks — public browse with search, category filter, pagination
 router.get('/', async (req, res) => {
   try {
-    const { search = '', category = '', page = 1, limit = 9 } = req.query;
-    const cacheKey = `tasks:list:${search}|${category}|${page}|${limit}`;
-    const cached = cache.get(cacheKey);
-    if (cached) return res.json(cached);
+    const { search = '', category = '', page = 1, limit = 9, shuffle = '' } = req.query;
+    // Shuffle only applies to the default browse view (no search/category) so
+    // results rotate on every reload, while filtered views stay stable.
+    const useShuffle = shuffle === '1' && !search && !category;
+    const cacheKey = `tasks:list:${search}|${category}|${page}|${limit}|${shuffle}`;
+    // Shuffled (default browse) results must not be cached — they should rotate
+    // on every request/reload.
+    if (!useShuffle) {
+      const cached = cache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
 
     const filter = { status: { $in: ['open', 'in_progress'] } };
 
@@ -46,16 +69,32 @@ router.get('/', async (req, res) => {
       const rx = new RegExp(search.trim(), 'i');
       filter.$or = [{ title: rx }, { description: rx }];
     }
-    if (category && CATEGORIES.includes(category)) filter.category = category;
+    // Accept any category value that exists in the data (no enum restriction).
+    if (category) filter.category = category;
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
     const skip = (pageNum - 1) * limitNum;
 
-    const [tasks, total] = await Promise.all([
-      Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
-      Task.countDocuments(filter),
-    ]);
+    let tasks, total;
+    if (useShuffle) {
+      total = await Task.countDocuments(filter);
+      if (total === 0) {
+        tasks = [];
+      } else {
+        const sampleSize = Math.min(total, skip + limitNum);
+        const sampled = await Task.aggregate([
+          { $match: filter },
+          { $sample: { size: sampleSize } },
+        ]);
+        tasks = sampled.slice(skip, skip + limitNum);
+      }
+    } else {
+      [tasks, total] = await Promise.all([
+        Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+        Task.countDocuments(filter),
+      ]);
+    }
 
     const data = await attachClients(tasks);
     const withCounts = await withProposalCounts(data);
@@ -66,7 +105,7 @@ router.get('/', async (req, res) => {
       total,
       totalPages: Math.ceil(total / limitNum),
     };
-    cache.set(cacheKey, payload);
+    if (!useShuffle) cache.set(cacheKey, payload);
     res.json(payload);
   } catch (err) {
     console.error('\n❌ [GET /tasks ERROR]', err);
@@ -103,9 +142,13 @@ router.get('/:id', optionalAuth, async (req, res) => {
         createdAt: -1,
       });
     }
-    const count = await Proposal.countDocuments({ task_id: task._id });
+    const count = await Proposal.countDocuments({
+      $or: [{ task_id: task._id }, { task_id: task._id.toString() }],
+    });
+    const stored = task.proposals_count;
+    const proposals_count = typeof stored === 'number' ? stored : count;
     res.json({
-      task: { ...data, proposals_count: count },
+      task: { ...data, proposals_count },
       isOwner,
       proposals: isOwner ? proposals : [],
     });

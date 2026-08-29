@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic';
 async function getInitial(searchParams) {
   const params = new URLSearchParams();
   if (searchParams?.search) params.set('search', searchParams.search);
+  if (!searchParams?.search) params.set('shuffle', '1');
   params.set('page', searchParams?.page || '1');
   params.set('limit', '9');
   try {

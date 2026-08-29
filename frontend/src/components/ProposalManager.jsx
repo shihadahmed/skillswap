@@ -43,9 +43,11 @@ export default function ProposalManager({ taskId, ownerEmail }) {
     setError('');
     try {
       await api.put(`/proposals/${id}`, { status });
-      toast.success(
-        status === 'accepted' ? 'Proposal accepted.' : 'Proposal rejected.'
-      );
+      if (status === 'accepted') {
+        toast.info('Proposal accepted. Redirecting to payment checkout...');
+      } else {
+        toast.warning('Proposal rejected.');
+      }
       await load();
     } catch (err) {
       setError(err.message || 'Action failed.');

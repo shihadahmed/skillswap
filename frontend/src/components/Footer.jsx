@@ -82,8 +82,8 @@ export default function Footer() {
         <div>
           <h4 className="font-semibold text-ink mb-3">Company</h4>
           <ul className="space-y-2 text-sm text-muted">
-            <li><Link href="/" className="hover:text-brand">About</Link></li>
-            <li><Link href="/" className="hover:text-brand">Contact</Link></li>
+            <li><Link href="/about" className="hover:text-brand">About</Link></li>
+            <li><Link href="/contact" className="hover:text-brand">Contact</Link></li>
             <li><a href="mailto:hello@skillswap.app" className="hover:text-brand">hello@skillswap.app</a></li>
           </ul>
         </div>

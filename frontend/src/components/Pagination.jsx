@@ -23,10 +23,17 @@ export default function Pagination({ page, totalPages, onPageChange }) {
     'border-line text-muted hover:text-ink hover:border-brand/40 bg-surface';
   const activeCls = 'border-brand bg-brand text-white';
 
+  // Scroll back to the top of the results whenever the page changes, so the
+  // first item of the new page is always in view (mirrors the browse pages).
+  const goTo = (p) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    onPageChange(p);
+  };
+
   return (
     <div className="flex items-center justify-center gap-1.5 mt-6 flex-wrap">
       <button
-        onClick={() => onPageChange(page - 1)}
+        onClick={() => goTo(page - 1)}
         disabled={page === 1}
         className={`${base} ${normal} disabled:opacity-40`}
         aria-label="Previous page"
@@ -41,7 +48,7 @@ export default function Pagination({ page, totalPages, onPageChange }) {
         ) : (
           <button
             key={p}
-            onClick={() => onPageChange(p)}
+            onClick={() => goTo(p)}
             className={`${base} ${p === page ? activeCls : normal}`}
           >
             {p}
@@ -49,7 +56,7 @@ export default function Pagination({ page, totalPages, onPageChange }) {
         )
       )}
       <button
-        onClick={() => onPageChange(page + 1)}
+        onClick={() => goTo(page + 1)}
         disabled={page === totalPages}
         className={`${base} ${normal} disabled:opacity-40`}
         aria-label="Next page"

@@ -8,29 +8,53 @@ const cache = require('../utils/cache');
 // query: search, category, page (default 1), limit (default 9)
 router.get('/', async (req, res) => {
   try {
-    const { search = '', category = '', page = 1, limit = 9 } = req.query;
-    const cacheKey = `freelancers:list:${search}|${category}|${page}|${limit}`;
-    const cached = cache.get(cacheKey);
-    if (cached) return res.json(cached);
+    const { search = '', category = '', page = 1, limit = 9, shuffle = '' } = req.query;
+    // Shuffle only the default browse view (no search/category) so results
+    // rotate on every reload; filtered views stay stable.
+    const useShuffle = shuffle === '1' && !search && !category;
+    const cacheKey = `freelancers:list:${search}|${category}|${page}|${limit}|${shuffle}`;
+    if (!useShuffle) {
+      const cached = cache.get(cacheKey);
+      if (cached) return res.json(cached);
+    }
 
     const filter = {};
     if (category) filter.categories = category;
 
-    let list = await Freelancer.find(filter).sort({ createdAt: -1 });
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
 
+    let raw, total;
+    if (useShuffle) {
+      total = await Freelancer.countDocuments(filter);
+      if (total === 0) {
+        raw = [];
+      } else {
+        const sampleSize = Math.min(total, skip + limitNum);
+        raw = await Freelancer.aggregate([
+          { $match: filter },
+          { $sample: { size: sampleSize } },
+        ]);
+      }
+    } else {
+      raw = await Freelancer.find(filter).sort({ createdAt: -1 });
+      total = raw.length;
+    }
+
+    // Search filter (name / headline / skills) — applied only when a term exists.
+    let list = raw;
     if (search) {
       const term = String(search).toLowerCase();
-      list = list.filter(
+      list = raw.filter(
         (f) =>
           f.name.toLowerCase().includes(term) ||
           (f.headline && f.headline.toLowerCase().includes(term)) ||
           (f.skills || []).some((s) => s.toLowerCase().includes(term))
       );
+      total = list.length;
     }
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
-    const total = list.length;
     const totalPages = Math.ceil(total / limitNum);
     const start = (pageNum - 1) * limitNum;
     const paged = list.slice(start, start + limitNum);
@@ -42,7 +66,7 @@ router.get('/', async (req, res) => {
       total,
       totalPages,
     };
-    cache.set(cacheKey, payload);
+    if (!useShuffle) cache.set(cacheKey, payload);
     res.json(payload);
   } catch (err) {
     res.status(500).json({ message: err.message });

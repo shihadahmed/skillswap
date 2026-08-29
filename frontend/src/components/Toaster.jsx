@@ -12,7 +12,14 @@ export default function Toaster() {
       newestOnTop
       closeOnClick
       pauseOnHover
+      draggable
       theme="light"
+      style={{ zIndex: 9999 }}
+      toastStyle={{
+        borderRadius: '12px',
+        fontFamily: 'inherit',
+        boxShadow: '0 8px 24px rgba(15, 23, 42, 0.12)',
+      }}
     />
   );
 }

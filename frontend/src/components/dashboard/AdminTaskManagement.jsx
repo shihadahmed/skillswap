@@ -129,7 +129,7 @@ export default function AdminTaskManagement() {
     setBusyId(t._id);
     try {
       await api.del(`/admin/tasks/${t._id}`);
-      toast.success('Task deleted.');
+      toast.info('Task removed by administrator.');
       await load();
     } catch (err) {
       toast.error(err.message || 'Delete failed.');

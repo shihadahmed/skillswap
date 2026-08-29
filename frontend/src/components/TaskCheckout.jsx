@@ -21,11 +21,11 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
     setError('');
     try {
       await api.post('/payments/checkout', { task_id: taskId });
-      toast.success('Payment successful — task marked complete.');
-      window.location.reload();
+      toast.success('Payment completed successfully! Task is now In Progress.');
+      setTimeout(() => window.location.reload(), 1500);
     } catch (e) {
       setError(e.message || 'Payment failed.');
-      toast.error(e.message || 'Payment failed.');
+      toast.error('Payment failed or transaction was cancelled.');
       setBusy(false);
     }
   };
@@ -45,11 +45,11 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
         rating: Number(rating),
         comment,
       });
-      toast.success('Thanks! Your review was submitted.');
+      toast.success('Thank you! Review and rating submitted.');
       setDone(true);
     } catch (e) {
       setError(e.message || 'Review failed.');
-      toast.error(e.message || 'Review failed.');
+      toast.error('Failed to submit review. Please try again.');
     } finally {
       setBusy(false);
     }

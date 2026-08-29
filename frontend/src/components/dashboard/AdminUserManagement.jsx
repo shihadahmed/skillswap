@@ -131,7 +131,11 @@ export default function AdminUserManagement() {
     setBusyId(u._id);
     try {
       await api.put(`/admin/users/${u._id}/block`);
-      toast.success(u.isBlocked ? 'User unblocked.' : 'User blocked.');
+      if (u.isBlocked) {
+        toast.success('User account reactivated successfully.');
+      } else {
+        toast.warning('User account has been blocked.');
+      }
       await load();
     } catch (err) {
       toast.error(err.message || 'Action failed.');
@@ -146,7 +150,7 @@ export default function AdminUserManagement() {
     setBusyId(u._id);
     try {
       await api.del(`/admin/users/${u._id}`);
-      toast.success('User deleted.');
+      toast.success('User removed permanently from the platform.');
       await load();
     } catch (err) {
       toast.error(err.message || 'Delete failed.');

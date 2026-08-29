@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 const redirectFor = (role) => {
   if (role === 'admin') return '/dashboard/admin';
@@ -31,15 +32,23 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     if (!/^(?=.*[a-z])(?=.*[A-Z]).{6,}$/.test(form.password)) {
-      setError('Password must be at least 6 characters with 1 uppercase and 1 lowercase letter.');
+      toast.error(
+        'Password must be at least 6 characters with uppercase and lowercase letters.'
+      );
       return;
     }
     setBusy(true);
     try {
       const u = await register(form);
+      toast.success('Account created successfully! Welcome to SkillSwap.');
       router.push(redirectFor(u.role));
     } catch (err) {
-      setError(err.message);
+      const msg = err.message || '';
+      if (/already/.test(msg)) {
+        toast.error('User with this email already exists.');
+      } else {
+        toast.error(msg || 'Registration failed. Please try again.');
+      }
     } finally {
       setBusy(false);
     }

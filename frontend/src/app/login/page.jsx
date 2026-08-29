@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 const redirectFor = (role) => {
   if (role === 'admin') return '/dashboard/admin';
@@ -26,9 +27,17 @@ export default function LoginPage() {
     setBusy(true);
     try {
       const u = await login(email, password);
+      toast.success('Logged in successfully!');
       router.push(redirectFor(u.role));
     } catch (err) {
-      setError(err.message);
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('blocked')) {
+        toast.error('Your account has been blocked by Admin.');
+      } else if (msg.includes('invalid')) {
+        toast.error('Invalid email or password.');
+      } else {
+        toast.error(err.message || 'Login failed. Please try again.');
+      }
     } finally {
       setBusy(false);
     }

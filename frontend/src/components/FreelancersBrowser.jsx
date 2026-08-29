@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import FreelancerCard from '@/components/FreelancerCard';
+import SearchBar from './SearchBar';
 
 const PAGE_SIZE = 9;
 
 export default function FreelancersBrowser({ initial, initialQuery = '' }) {
   const [freelancers, setFreelancers] = useState(initial.freelancers || []);
-  const [input, setInput] = useState(initialQuery);
   const [applied, setApplied] = useState(initialQuery);
   const [page, setPage] = useState(initial.page || 1);
   const [totalPages, setTotalPages] = useState(initial.totalPages || 1);
@@ -16,18 +16,43 @@ export default function FreelancersBrowser({ initial, initialQuery = '' }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Cache page results on the client so Prev/Next feels instant.
+  const cacheRef = useRef(new Map());
+
   const load = useCallback(async (query = '', pageNum = 1) => {
+    const key = `${query}|${pageNum}`;
+    const cached = cacheRef.current.get(key);
+    if (cached) {
+      setFreelancers(cached.freelancers);
+      setPage(cached.page);
+      setTotalPages(cached.totalPages);
+      setTotal(cached.total);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
-      const url = `/freelancers?search=${encodeURIComponent(
-        query
-      )}&page=${pageNum}&limit=${PAGE_SIZE}`;
+      const params = new URLSearchParams();
+      if (query) params.set('search', query);
+      // Shuffle the default browse view so cards rotate on every reload.
+      if (!query) params.set('shuffle', '1');
+      params.set('page', pageNum);
+      params.set('limit', PAGE_SIZE);
+      const url = `/freelancers?${params.toString()}`;
       const data = await api.get(url);
-      setFreelancers(data.freelancers || []);
-      setPage(data.page || 1);
-      setTotalPages(data.totalPages || 1);
-      setTotal(data.total || 0);
+      const payload = {
+        freelancers: data.freelancers || [],
+        page: data.page || 1,
+        totalPages: data.totalPages || 1,
+        total: data.total || 0,
+      };
+      cacheRef.current.set(key, payload);
+      setFreelancers(payload.freelancers);
+      setPage(payload.page);
+      setTotalPages(payload.totalPages);
+      setTotal(payload.total);
     } catch (err) {
       setError(err.message || 'Could not load freelancers.');
     } finally {
@@ -45,9 +70,14 @@ export default function FreelancersBrowser({ initial, initialQuery = '' }) {
     load(applied, page);
   }, [applied, page, load]);
 
-  const onSearch = (e) => {
-    e.preventDefault();
-    setApplied(input);
+  // Scroll back to the top of the results whenever the page or search changes,
+  // so the first card of the new page is always in view.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page, applied]);
+
+  const onSearch = (q) => {
+    setApplied(q);
     setPage(1);
   };
 
@@ -60,21 +90,12 @@ export default function FreelancersBrowser({ initial, initialQuery = '' }) {
         </p>
       </div>
 
-      <form onSubmit={onSearch} className="flex gap-2 max-w-xl mb-8">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Search by name, skill or keyword…"
-          className="flex-1 min-w-0 h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-        />
-        <button
-          type="submit"
-          className="shrink-0 h-11 px-5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl transition-colors"
-        >
-          Search
-        </button>
-      </form>
+      <SearchBar
+        initialValue={initialQuery}
+        placeholder="Search by name, skill or keyword…"
+        onSubmit={onSearch}
+        className="mb-8"
+      />
 
       {error && (
         <p className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-lg px-3 py-2 mb-4">
@@ -82,9 +103,14 @@ export default function FreelancersBrowser({ initial, initialQuery = '' }) {
         </p>
       )}
 
-      {loading ? (
-        <p className="text-muted">Loading freelancers…</p>
-      ) : freelancers.length === 0 ? (
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-muted mb-4">
+          <span className="h-4 w-4 rounded-full border-2 border-brand/30 border-t-brand animate-spin" />
+          Loading…
+        </div>
+      )}
+
+      {!loading && freelancers.length === 0 ? (
         <div className="bg-surface border border-line rounded-2xl p-10 text-center">
           <p className="text-muted">No freelancers found.</p>
         </div>

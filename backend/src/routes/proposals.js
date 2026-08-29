@@ -61,4 +61,36 @@ router.put('/:id', auth, requireRole('client'), async (req, res) => {
   }
 });
 
+// POST /api/proposals/:id/deliver — freelancer submits the deliverable URL
+// and marks the accepted task as completed.
+router.post('/:id/deliver', auth, requireRole('freelancer'), async (req, res) => {
+  try {
+    const { deliverable_url } = req.body;
+    if (!deliverable_url || !/^https?:\/\/.+/.test(deliverable_url)) {
+      return res.status(400).json({ message: 'A valid deliverable URL is required' });
+    }
+
+    const proposal = await Proposal.findById(req.params.id);
+    if (!proposal) return res.status(404).json({ message: 'Proposal not found' });
+    if (proposal.freelancer_email !== req.user.email)
+      return res.status(403).json({ message: 'Only the freelancer can submit this deliverable' });
+    if (proposal.status !== 'accepted')
+      return res.status(400).json({ message: 'This proposal is not accepted' });
+
+    proposal.deliverable_url = deliverable_url;
+    await proposal.save();
+
+    const task = await Task.findById(proposal.task_id);
+    if (task) {
+      task.status = 'completed';
+      await task.save();
+    }
+
+    res.json({ proposal, task });
+  } catch (err) {
+    console.error('\n❌ [POST /proposals/:id/deliver ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
