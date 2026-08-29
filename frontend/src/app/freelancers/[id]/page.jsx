@@ -16,6 +16,21 @@ async function getFreelancer(id) {
   }
 }
 
+async function getReviews(email) {
+  if (!email) return [];
+  try {
+    const res = await fetch(
+      `${API_URL}/reviews?freelancer_email=${encodeURIComponent(email)}`,
+      { cache: 'no-store' }
+    );
+    if (!res.ok) return [];
+    const d = await res.json();
+    return d.reviews || [];
+  } catch {
+    return [];
+  }
+}
+
 function CheckIcon() {
   return (
     <svg
@@ -53,6 +68,7 @@ function Stat({ label, value }) {
 export default async function FreelancerDetailPage({ params }) {
   const f = await getFreelancer(params.id);
   if (!f) notFound();
+  const reviews = await getReviews(f.email);
 
   const rate = f.hourly_rate?.amount ? `$${f.hourly_rate.amount}/hr` : '—';
   const location = [f.location?.city, f.location?.country]
@@ -215,6 +231,39 @@ export default async function FreelancerDetailPage({ params }) {
                   Replies {f.availability.response_time}
                 </span>
               )}
+            </div>
+          </section>
+        )}
+
+        {reviews.length > 0 && (
+          <section className="mt-6">
+            <h2 className="text-lg font-bold text-ink mb-3">
+              Reviews ({reviews.length})
+            </h2>
+            <div className="space-y-3">
+              {reviews.map((r) => (
+                <div
+                  key={r._id}
+                  className="bg-bg border border-line rounded-xl p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-amber-500 font-semibold">
+                      {'★'.repeat(r.rating)}
+                      <span className="text-slate-300">
+                        {'★'.repeat(5 - r.rating)}
+                      </span>
+                    </span>
+                    <span className="text-xs text-muted">
+                      {r.reviewer_email}
+                    </span>
+                  </div>
+                  {r.comment && (
+                    <p className="text-sm text-muted mt-2 leading-relaxed">
+                      {r.comment}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           </section>
         )}

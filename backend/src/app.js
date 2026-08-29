@@ -10,6 +10,9 @@ const swapRoutes = require('./routes/swaps');
 const taskRoutes = require('./routes/tasks');
 const proposalRoutes = require('./routes/proposals');
 const freelancerRoutes = require('./routes/freelancers');
+const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/payments');
+const reviewRoutes = require('./routes/reviews');
 const connectDB = require('./config/db');
 // Future phases will mount: payments, reviews
 
@@ -18,6 +21,8 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
+    // Reflect the requesting origin so cookie-based auth works for localhost,
+    // 127.0.0.1, and the Vercel frontend alike. (ACAC is still true below.)
     origin: true,
     credentials: true,
   })
@@ -83,6 +88,9 @@ app.use('/api/swaps', swapRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/proposals', proposalRoutes);
 app.use('/api/freelancers', freelancerRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

@@ -25,6 +25,27 @@ module.exports = async (req, res, next) => {
   }
 };
 
+module.exports.optionalAuth = async (req, res, next) => {
+  try {
+    const header = req.headers.authorization || '';
+    let token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token && req.cookies && req.cookies.ss_token) {
+      token = req.cookies.ss_token;
+    }
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select('-password');
+      if (user) {
+        req.user = user;
+        req.userId = user._id;
+      }
+    }
+  } catch (e) {
+    // ignore — treat as guest
+  }
+  next();
+};
+
 module.exports.requireRole = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
     return res.status(403).json({ message: 'Forbidden: insufficient role' });

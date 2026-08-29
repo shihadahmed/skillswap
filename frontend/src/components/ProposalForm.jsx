@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 export default function ProposalForm({ taskId, taskTitle }) {
   const { user, loading } = useAuth();
@@ -11,7 +12,6 @@ export default function ProposalForm({ taskId, taskTitle }) {
   const [days, setDays] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
   if (loading) {
@@ -65,15 +65,14 @@ export default function ProposalForm({ taskId, taskTitle }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    setError('');
     const proposed_budget = Number(budget);
     const estimated_days = Number(days);
     if (!proposed_budget || proposed_budget <= 0) {
-      setError('Please enter a valid proposed budget.');
+      toast.error('Please enter a valid proposed budget.');
       return;
     }
     if (!estimated_days || estimated_days < 1) {
-      setError('Please enter an estimated number of days (min 1).');
+      toast.error('Please enter an estimated number of days (min 1).');
       return;
     }
     setSubmitting(true);
@@ -83,9 +82,10 @@ export default function ProposalForm({ taskId, taskTitle }) {
         estimated_days,
         cover_note: note,
       });
+      toast.success('Proposal sent! The client will review your application.');
       setDone(true);
     } catch (err) {
-      setError(err.message || 'Could not submit proposal.');
+      toast.error(err.message || 'Could not submit proposal.');
     } finally {
       setSubmitting(false);
     }
@@ -142,12 +142,6 @@ export default function ProposalForm({ taskId, taskTitle }) {
           className="w-full rounded-xl border border-line bg-bg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
         />
       </div>
-
-      {error && (
-        <p className="mt-3 text-sm text-danger bg-danger/10 border border-danger/30 rounded-lg px-3 py-2">
-          {error}
-        </p>
-      )}
 
       <button
         type="submit"

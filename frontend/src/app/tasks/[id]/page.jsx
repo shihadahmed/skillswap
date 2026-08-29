@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { API_URL } from '@/lib/api';
 import ProposalForm from '@/components/ProposalForm';
 import ProposalManager from '@/components/ProposalManager';
+import TaskCheckout from '@/components/TaskCheckout';
 
 export const dynamic = 'force-dynamic';
 
@@ -348,6 +349,14 @@ export default async function TaskDetailPage({ params }) {
               ownerEmail={task.client_email || task.client?.email}
             />
           </div>
+        </div>
+
+        <div className="mt-6">
+          <TaskCheckout
+            taskId={task._id}
+            clientEmail={task.client_email}
+            status={task.status}
+          />
         </div>
       </div>
     </div>

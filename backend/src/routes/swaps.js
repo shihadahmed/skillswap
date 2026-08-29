@@ -38,8 +38,8 @@ router.get('/', auth, async (req, res) => {
     else filter.$or = [{ from: req.userId }, { to: req.userId }];
 
     const swaps = await SwapRequest.find(filter)
-      .populate('from', 'name avatar location')
-      .populate('to', 'name avatar location')
+      .populate('from', 'name image')
+      .populate('to', 'name image')
       .sort({ createdAt: -1 });
     res.json(swaps);
   } catch (err) {
@@ -66,8 +66,8 @@ router.patch('/:id', auth, async (req, res) => {
 
     if (status === 'completed') {
       await Promise.all([
-        User.findByIdAndUpdate(swap.from, { $inc: { swapsCompleted: 1 } }),
-        User.findByIdAndUpdate(swap.to, { $inc: { swapsCompleted: 1 } }),
+        User.findByIdAndUpdate(swap.from, { $inc: { jobsCompleted: 1 } }),
+        User.findByIdAndUpdate(swap.to, { $inc: { jobsCompleted: 1 } }),
       ]);
     }
     res.json(swap);

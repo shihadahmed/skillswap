@@ -4,61 +4,12 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import ProtectedRoute from '@/components/ProtectedRoute';
-
-const LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
-const AVAILABILITY = ['weekdays', 'weekends', 'evenings', 'flexible'];
-
-function SkillEditor({ title, list, setList }) {
-  const [name, setName] = useState('');
-  const [level, setLevel] = useState('intermediate');
-
-  const add = () => {
-    if (!name.trim()) return;
-    setList([...list, { name: name.trim(), level }]);
-    setName('');
-  };
-  const remove = (i) => setList(list.filter((_, idx) => idx !== i));
-
-  return (
-    <div style={{ marginBottom: 16 }}>
-      <label>{title}</label>
-      <div className="row">
-        <input
-          placeholder="Skill name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{ marginBottom: 0 }}
-        />
-        <select value={level} onChange={(e) => setLevel(e.target.value)} style={{ width: 160, marginBottom: 0 }}>
-          {LEVELS.map((l) => (
-            <option key={l}>{l}</option>
-          ))}
-        </select>
-        <button type="button" className="btn" onClick={add}>
-          Add
-        </button>
-      </div>
-      <div style={{ marginTop: 8 }}>
-        {list.map((s, i) => (
-          <span key={i} className="tag">
-            {s.name} · {s.level}{' '}
-            <button
-              type="button"
-              onClick={() => remove(i)}
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
-            >
-              ✕
-            </button>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { toast } from 'react-toastify';
 
 function Profile() {
   const { user, updateUser } = useAuth();
   const [form, setForm] = useState(null);
+  const [skill, setSkill] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -66,79 +17,145 @@ function Profile() {
     if (user) {
       setForm({
         name: user.name || '',
-        location: user.location || '',
         bio: user.bio || '',
-        avatar: user.avatar || '',
-        availability: user.availability || 'flexible',
-        skillsOffered: user.skillsOffered || [],
-        skillsWanted: user.skillsWanted || [],
+        image: user.image || '',
+        skills: user.skills || [],
       });
     }
   }, [user]);
 
-  if (!form) return <p className="muted">Loading...</p>;
+  if (!form) return <p className="text-muted">Loading…</p>;
+
+  const addSkill = () => {
+    const v = skill.trim();
+    if (!v || form.skills.includes(v)) {
+      setSkill('');
+      return;
+    }
+    setForm({ ...form, skills: [...form.skills, v] });
+    setSkill('');
+  };
+
+  const removeSkill = (s) =>
+    setForm({ ...form, skills: form.skills.filter((x) => x !== s) });
 
   const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
     setMsg('');
     try {
-      const updated = await api.put('/users/me', form);
+      const updated = await api.put('/users/me', {
+        name: form.name,
+        bio: form.bio,
+        image: form.image,
+        skills: form.skills,
+      });
       updateUser(updated);
       setMsg('Profile saved!');
+      toast.success('Profile saved!');
     } catch (err) {
       setMsg(err.message);
+      toast.error(err.message);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div>
-      <h1 style={{ marginBottom: 16 }}>My Profile</h1>
-      {msg && <div className="toast toast-success">{msg}</div>}
-      <form className="card" onSubmit={submit}>
-        <label>Name</label>
-        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        <label>Location</label>
-        <input
-          value={form.location}
-          onChange={(e) => setForm({ ...form, location: e.target.value })}
-        />
-        <label>Bio</label>
-        <textarea
-          rows={3}
-          value={form.bio}
-          onChange={(e) => setForm({ ...form, bio: e.target.value })}
-        />
-        <label>Avatar URL</label>
-        <input
-          value={form.avatar}
-          onChange={(e) => setForm({ ...form, avatar: e.target.value })}
-        />
-        <label>Availability</label>
-        <select
-          value={form.availability}
-          onChange={(e) => setForm({ ...form, availability: e.target.value })}
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">My Profile</h1>
+      <p className="text-muted mt-1">Update your public profile details.</p>
+
+      {msg && (
+        <div
+          className={`mt-4 text-sm px-3 py-2 rounded-lg border ${
+            msg.includes('saved')
+              ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+              : 'text-danger bg-danger/10 border-danger/30'
+          }`}
         >
-          {AVAILABILITY.map((a) => (
-            <option key={a}>{a}</option>
-          ))}
-        </select>
+          {msg}
+        </div>
+      )}
 
-        <SkillEditor
-          title="Skills I Offer"
-          list={form.skillsOffered}
-          setList={(v) => setForm({ ...form, skillsOffered: v })}
-        />
-        <SkillEditor
-          title="Skills I Want"
-          list={form.skillsWanted}
-          setList={(v) => setForm({ ...form, skillsWanted: v })}
-        />
+      <form
+        onSubmit={submit}
+        className="mt-6 bg-surface border border-line rounded-2xl p-6 shadow-soft space-y-4"
+      >
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">Name</label>
+          <input
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </div>
 
-        <button className="btn" disabled={busy}>
-          {busy ? 'Saving...' : 'Save Profile'}
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">
+            Avatar URL
+          </label>
+          <input
+            value={form.image}
+            onChange={(e) => setForm({ ...form, image: e.target.value })}
+            placeholder="https://…"
+            className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">Bio</label>
+          <textarea
+            rows={3}
+            value={form.bio}
+            onChange={(e) => setForm({ ...form, bio: e.target.value })}
+            className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-ink mb-1">Skills</label>
+          <div className="flex gap-2">
+            <input
+              value={skill}
+              onChange={(e) => setSkill(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+              placeholder="Add a skill and press Enter"
+              className="flex-1 h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+            />
+            <button
+              type="button"
+              onClick={addSkill}
+              className="px-4 h-11 rounded-xl border border-line text-muted hover:text-ink hover:border-brand/40 text-sm font-semibold"
+            >
+              Add
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {form.skills.map((s) => (
+              <span
+                key={s}
+                className="inline-flex items-center gap-1 bg-brand/10 text-brand text-xs font-medium px-2.5 py-1 rounded-full"
+              >
+                {s}
+                <button
+                  type="button"
+                  onClick={() => removeSkill(s)}
+                  className="hover:text-danger"
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={busy}
+          className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
+        >
+          {busy ? 'Saving…' : 'Save Profile'}
         </button>
       </form>
     </div>

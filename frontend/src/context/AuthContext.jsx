@@ -29,6 +29,8 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const data = await api.post('/auth/login', { email, password });
+    if (data.token && typeof window !== 'undefined')
+      window.localStorage.setItem('ss_token', data.token);
     setUser(data.user);
     return data.user;
   };
@@ -41,11 +43,14 @@ export function AuthProvider({ children }) {
       image,
       role,
     });
+    if (data.token && typeof window !== 'undefined')
+      window.localStorage.setItem('ss_token', data.token);
     setUser(data.user);
     return data.user;
   };
 
   const logout = async () => {
+    if (typeof window !== 'undefined') window.localStorage.removeItem('ss_token');
     try {
       await api.post('/auth/logout', {});
     } catch (e) {

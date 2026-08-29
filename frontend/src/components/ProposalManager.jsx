@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 const statusStyles = {
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -42,9 +43,13 @@ export default function ProposalManager({ taskId, ownerEmail }) {
     setError('');
     try {
       await api.put(`/proposals/${id}`, { status });
+      toast.success(
+        status === 'accepted' ? 'Proposal accepted.' : 'Proposal rejected.'
+      );
       await load();
     } catch (err) {
       setError(err.message || 'Action failed.');
+      toast.error(err.message || 'Action failed.');
     } finally {
       setBusyId(null);
     }

@@ -39,6 +39,7 @@ const verificationSchema = new mongoose.Schema(
 const freelancerSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true },
+    email: { type: String, default: '' },
     name: { type: String, required: true },
     headline: { type: String, default: '' },
     badge: { type: String, default: '' },

@@ -1,12 +1,18 @@
 const router = require('express').Router();
+const mongoose = require('mongoose');
 const auth = require('../middleware/auth');
 const Freelancer = require('../models/Freelancer');
+const cache = require('../utils/cache');
 
 // GET /api/freelancers -> public list with search + pagination
 // query: search, category, page (default 1), limit (default 9)
 router.get('/', async (req, res) => {
   try {
     const { search = '', category = '', page = 1, limit = 9 } = req.query;
+    const cacheKey = `freelancers:list:${search}|${category}|${page}|${limit}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const filter = {};
     if (category) filter.categories = category;
 
@@ -29,22 +35,26 @@ router.get('/', async (req, res) => {
     const start = (pageNum - 1) * limitNum;
     const paged = list.slice(start, start + limitNum);
 
-    res.json({
+    const payload = {
       freelancers: paged,
       page: pageNum,
       limit: limitNum,
       total,
       totalPages,
-    });
+    };
+    cache.set(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// GET /api/freelancers/:id -> public single profile
+// GET /api/freelancers/:id -> public single profile (lookup by _id or fl_ id)
 router.get('/:id', async (req, res) => {
   try {
-    const f = await Freelancer.findOne({ id: req.params.id });
+    const id = req.params.id;
+    const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
+    const f = await Freelancer.findOne(query);
     if (!f) return res.status(404).json({ message: 'Freelancer not found' });
     res.json(f);
   } catch (err) {

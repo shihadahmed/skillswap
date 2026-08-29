@@ -52,7 +52,7 @@ a {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
-.grid {
+.legacy-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
@@ -105,9 +105,10 @@ a {
   background: #dc2626;
 }
 
-input,
-textarea,
-select {
+.legacy-input,
+.card input,
+.card textarea,
+.card select {
   width: 100%;
   padding: 11px 13px;
   margin: 6px 0 14px;

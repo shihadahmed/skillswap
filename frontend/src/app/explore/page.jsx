@@ -50,6 +50,7 @@ function Explore() {
         Find people offering what you want, and wanting what you offer.
       </p>
       <input
+        className="legacy-input"
         placeholder="Search by name, skill or location..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -64,7 +65,7 @@ function Explore() {
       ) : users.length === 0 ? (
         <p className="muted">No users found.</p>
       ) : (
-        <div className="grid">
+        <div className="legacy-grid">
           {users.map((u) => (
             <div className="card" key={u._id}>
               <div className="row" style={{ justifyContent: 'space-between' }}>

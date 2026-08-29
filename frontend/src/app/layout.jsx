@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import Toaster from '@/components/Toaster';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
+          <Toaster />
         </AuthProvider>
       </body>
     </html>

@@ -3,7 +3,8 @@ const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const { requireRole } = auth;
+const { requireRole, optionalAuth } = auth;
+const cache = require('../utils/cache');
 
 const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
 
@@ -16,11 +17,29 @@ async function attachClients(tasks) {
   return tasks.map((t) => (t.toObject ? t.toObject() : t));
 }
 
+// Attach a proposals_count to each task based on its proposals.
+async function withProposalCounts(tasks) {
+  if (!tasks.length) return tasks;
+  const ids = tasks.map((t) => t._id);
+  const counts = await Proposal.aggregate([
+    { $match: { task_id: { $in: ids } } },
+    { $group: { _id: '$task_id', n: { $sum: 1 } } },
+  ]);
+  const map = new Map(counts.map((c) => [c._id.toString(), c.n]));
+  return tasks.map((t) => {
+    const obj = t.toObject ? t.toObject() : t;
+    return { ...obj, proposals_count: map.get(t._id.toString()) || 0 };
+  });
+}
+
 // GET /api/tasks — public browse with search, category filter, pagination
-// query: search, category, page (default 1), limit (default 9)
 router.get('/', async (req, res) => {
   try {
     const { search = '', category = '', page = 1, limit = 9 } = req.query;
+    const cacheKey = `tasks:list:${search}|${category}|${page}|${limit}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const filter = { status: { $in: ['open', 'in_progress'] } };
 
     if (search) {
@@ -39,13 +58,16 @@ router.get('/', async (req, res) => {
     ]);
 
     const data = await attachClients(tasks);
-    res.json({
-      tasks: data,
+    const withCounts = await withProposalCounts(data);
+    const payload = {
+      tasks: withCounts,
       page: pageNum,
       limit: limitNum,
       total,
       totalPages: Math.ceil(total / limitNum),
-    });
+    };
+    cache.set(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     console.error('\n❌ [GET /tasks ERROR]', err);
     res.status(500).json({ message: err.message });
@@ -55,8 +77,11 @@ router.get('/', async (req, res) => {
 // GET /api/tasks/mine — client's own tasks
 router.get('/mine', auth, requireRole('client'), async (req, res) => {
   try {
-    const tasks = await Task.find({ client_email: req.user.email }).sort({ createdAt: -1 });
-    res.json({ tasks });
+    const tasks = await Task.find({ client_email: req.user.email }).sort({
+      createdAt: -1,
+    });
+    const withCounts = await withProposalCounts(tasks);
+    res.json({ tasks: withCounts });
   } catch (err) {
     console.error('\n❌ [GET /tasks/mine ERROR]', err);
     res.status(500).json({ message: err.message });
@@ -64,7 +89,7 @@ router.get('/mine', auth, requireRole('client'), async (req, res) => {
 });
 
 // GET /api/tasks/:id — public task details (+ proposals if owner)
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
@@ -74,21 +99,35 @@ router.get('/:id', async (req, res) => {
 
     let proposals = [];
     if (isOwner) {
-      proposals = await Proposal.find({ task_id: task._id }).sort({ createdAt: -1 });
+      proposals = await Proposal.find({ task_id: task._id }).sort({
+        createdAt: -1,
+      });
     }
-    res.json({ task: data, isOwner, proposals: isOwner ? proposals : [] });
+    const count = await Proposal.countDocuments({ task_id: task._id });
+    res.json({
+      task: { ...data, proposals_count: count },
+      isOwner,
+      proposals: isOwner ? proposals : [],
+    });
   } catch (err) {
     console.error('\n❌ [GET /tasks/:id ERROR]', err);
     res.status(500).json({ message: err.message });
   }
 });
 
-// POST /api/tasks — create (client only)
-router.post('/', auth, requireRole('client'), async (req, res) => {
+// POST /api/tasks — create (client, or admin posting on behalf of a client)
+router.post('/', auth, requireRole('client', 'admin'), async (req, res) => {
   try {
     const { title, category, description, budget, deadline } = req.body;
     if (!title || budget == null)
       return res.status(400).json({ message: 'Title and budget are required' });
+
+    // A client posts under their own email; an admin may post on behalf of
+    // any client by passing `client_email`.
+    const client_email =
+      req.user.role === 'admin' && req.body.client_email
+        ? req.body.client_email
+        : req.user.email;
 
     const task = await Task.create({
       title,
@@ -97,7 +136,7 @@ router.post('/', auth, requireRole('client'), async (req, res) => {
       budget,
       deadline: deadline ? String(deadline) : '',
       posted: new Date().toLocaleDateString('en-GB'),
-      client_email: req.user.email,
+      client_email,
     });
     res.status(201).json({ task });
   } catch (err) {
@@ -116,10 +155,11 @@ router.put('/:id', auth, requireRole('client'), async (req, res) => {
 
     const { title, category, description, budget, deadline, status } = req.body;
     if (title != null) task.title = title;
-    if (category != null) task.category = CATEGORIES.includes(category) ? category : task.category;
+    if (category != null)
+      task.category = CATEGORIES.includes(category) ? category : task.category;
     if (description != null) task.description = description;
     if (budget != null) task.budget = budget;
-    if (deadline != null) task.deadline = deadline ? new Date(deadline) : undefined;
+    if (deadline != null) task.deadline = deadline ? String(deadline) : '';
     if (status != null && ['open', 'in_progress', 'completed'].includes(status))
       task.status = status;
 
@@ -190,7 +230,9 @@ router.get('/:id/proposals', auth, requireRole('client'), async (req, res) => {
     if (task.client_email !== req.user.email)
       return res.status(403).json({ message: 'Only the task owner can view proposals' });
 
-    const proposals = await Proposal.find({ task_id: task._id }).sort({ createdAt: -1 });
+    const proposals = await Proposal.find({ task_id: task._id }).sort({
+      createdAt: -1,
+    });
     res.json({ proposals });
   } catch (err) {
     console.error('\n❌ [GET /tasks/:id/proposals ERROR]', err);

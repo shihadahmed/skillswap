@@ -1,11 +1,20 @@
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+const getToken = () => {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem('ss_token');
+};
+
 async function request(path, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const token = getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
