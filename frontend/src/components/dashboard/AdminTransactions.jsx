@@ -1,50 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { useState } from 'react';
+import { useAdminTransactions } from '@/lib/hooks';
 import { fmtBudget } from '@/lib/format';
 import Pagination from '@/components/Pagination';
+import EmptyState from '@/components/EmptyState';
+import { TableSkeleton } from '@/components/Skeletons';
 
 export default function AdminTransactions() {
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const { data, isLoading } = useAdminTransactions(page);
 
-  useEffect(() => {
-    let active = true;
-    api
-      .get('/admin/transactions')
-      .then((d) => {
-        if (active) setTransactions(d.transactions || []);
-      })
-      .catch(() => {
-        if (active) setTransactions([]);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const PAGE_SIZE = 20;
-  const totalPages = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages);
-  const pagedTransactions = transactions.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE
-  );
+  const transactions = data?.transactions || [];
+  const totalPages = data?.totalPages || 1;
+  const total = data?.total || 0;
+  const showSkeleton = isLoading && !data;
 
   return (
     <div>
-      <h2 className="text-lg font-bold text-ink mb-4">Transactions</h2>
-      {loading ? (
-        <p className="text-muted text-sm">Loading…</p>
+      <h2 className="text-lg font-bold text-ink mb-4">Transactions ({total})</h2>
+      {showSkeleton ? (
+        <TableSkeleton cols={9} rows={6} />
       ) : transactions.length === 0 ? (
-        <div className="bg-surface border border-line rounded-2xl p-10 text-center">
-          <p className="text-muted">No transactions yet.</p>
-        </div>
+        <EmptyState title="No transactions yet" message="Payments made through the platform will appear here." />
       ) : (
         <div className="overflow-x-auto bg-surface border border-line rounded-2xl">
           <table className="w-full text-sm">
@@ -52,36 +30,38 @@ export default function AdminTransactions() {
               <tr className="text-left text-muted border-b border-line">
                 <th className="py-3 px-4 font-medium">Client</th>
                 <th className="py-3 px-4 font-medium">Freelancer</th>
-                <th className="py-3 px-4 font-medium">Amount</th>
-                <th className="py-3 px-4 font-medium">Status</th>
+                <th className="py-3 px-4 font-medium">Base Bid</th>
+                <th className="py-3 px-4 font-medium">Client Fees</th>
+                <th className="py-3 px-4 font-medium">Gateway</th>
+                <th className="py-3 px-4 font-medium">Total Paid</th>
+                <th className="py-3 px-4 font-medium">Freelancer Net</th>
+                <th className="py-3 px-4 font-medium">Platform Profit</th>
                 <th className="py-3 px-4 font-medium">Date</th>
               </tr>
             </thead>
             <tbody>
-               {pagedTransactions.map((tx) => (
+              {transactions.map((tx) => (
                 <tr key={tx._id} className="border-b border-line last:border-0">
-                  <td className="py-3 px-4 text-muted truncate max-w-[160px]">
-                    {tx.client_email}
-                  </td>
-                  <td className="py-3 px-4 text-muted truncate max-w-[160px]">
-                    {tx.freelancer_email}
-                  </td>
-                  <td className="py-3 px-4 text-muted">{fmtBudget(tx.amount)}</td>
-                  <td className="py-3 px-4 capitalize text-muted">
-                    {tx.payment_status}
-                  </td>
+                  <td className="py-3 px-4 text-muted truncate max-w-[140px]">{tx.client_email}</td>
+                  <td className="py-3 px-4 text-muted truncate max-w-[140px]">{tx.freelancer_email}</td>
+                  <td className="py-3 px-4 text-muted">{fmtBudget(tx.base_bid_amount || tx.amount)}</td>
                   <td className="py-3 px-4 text-muted">
-                    {tx.createdAt
-                      ? new Date(tx.createdAt).toLocaleDateString()
-                      : '—'}
+                    {fmtBudget((tx.client_service_fee || 0) + (tx.vat_amount || 0))}
+                  </td>
+                  <td className="py-3 px-4 text-muted">{fmtBudget(tx.gateway_fee || 0)}</td>
+                  <td className="py-3 px-4 font-semibold text-ink">{fmtBudget(tx.total_paid_by_client || tx.amount)}</td>
+                  <td className="py-3 px-4 text-emerald-600 font-medium">{fmtBudget(tx.freelancer_net_payout || 0)}</td>
+                  <td className="py-3 px-4 text-brand font-medium">{fmtBudget(tx.platform_net_profit || 0)}</td>
+                  <td className="py-3 px-4 text-muted">
+                    {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : '—'}
                   </td>
                 </tr>
               ))}
             </tbody>
-              </table>
-            <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />
-            </div>
-          )}
+          </table>
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </div>
+      )}
     </div>
   );
 }

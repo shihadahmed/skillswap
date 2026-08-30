@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect } from 'react';
+import useSWR from 'swr';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { fetcher } from '@/lib/fetcher';
+import { useRevalidate } from '@/lib/hooks';
 import { toast } from 'react-toastify';
 
 const statusStyles = {
@@ -13,34 +16,27 @@ const statusStyles = {
 
 export default function ProposalManager({ taskId, ownerEmail }) {
   const { user } = useAuth();
-  const [proposals, setProposals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState(null);
-  const [error, setError] = useState('');
-
+  const revalidate = useRevalidate();
   const isOwner = user?.role === 'client' && user.email === ownerEmail;
 
-  const load = useCallback(async () => {
-    try {
-      const data = await api.get(`/tasks/${taskId}/proposals`);
-      setProposals(data.proposals || []);
-    } catch {
-      setProposals([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [taskId]);
-
-  useEffect(() => {
-    if (isOwner) load();
-    else setLoading(false);
-  }, [isOwner, load]);
+  const { data, error, isLoading, mutate } = useSWR(
+    isOwner ? `/tasks/${taskId}/proposals` : null,
+    fetcher
+  );
+  const proposals = data?.proposals || [];
 
   if (!isOwner) return null;
 
   const decide = async (id, status) => {
-    setBusyId(id);
-    setError('');
+    // Optimistic: flip the proposal status in the cache instantly.
+    await mutate(
+      (cur) =>
+        cur && {
+          ...cur,
+          proposals: cur.proposals.map((p) => (p._id === id ? { ...p, status } : p)),
+        },
+      { revalidate: false }
+    );
     try {
       await api.put(`/proposals/${id}`, { status });
       if (status === 'accepted') {
@@ -48,74 +44,63 @@ export default function ProposalManager({ taskId, ownerEmail }) {
       } else {
         toast.warning('Proposal rejected.');
       }
-      await load();
     } catch (err) {
-      setError(err.message || 'Action failed.');
       toast.error(err.message || 'Action failed.');
     } finally {
-      setBusyId(null);
+      // Revalidate this list and the client's task overview (status may change).
+      mutate();
+      revalidate(
+        (k) =>
+          typeof k === 'string' &&
+          (k.startsWith('/tasks/mine') ||
+            k.startsWith('/client/overview') ||
+            k.startsWith('/freelancer/overview'))
+      );
     }
   };
 
   return (
     <div className="mt-10">
-      <h2 className="text-xl font-bold text-ink mb-4">
-        Proposals ({proposals.length})
-      </h2>
+      <h2 className="text-xl font-bold text-ink mb-4">Proposals ({proposals.length})</h2>
 
-      {error && (
+      {error ? (
         <p className="mb-4 text-sm text-danger bg-danger/10 border border-danger/30 rounded-lg px-3 py-2">
-          {error}
+          Could not load proposals.
         </p>
-      )}
-
-      {loading ? (
+      ) : isLoading ? (
         <p className="text-muted text-sm">Loading proposals…</p>
       ) : proposals.length === 0 ? (
         <p className="text-muted text-sm">No proposals yet.</p>
       ) : (
         <ul className="space-y-4">
           {proposals.map((p) => (
-            <li
-              key={p._id}
-              className="bg-surface border border-line rounded-2xl p-5 shadow-soft"
-            >
+            <li key={p._id} className="bg-surface border border-line rounded-2xl p-5 shadow-soft">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
                   <p className="font-semibold text-ink">{p.freelancer_email}</p>
                   <p className="text-sm text-muted mt-0.5">
-                    ${Number(p.proposed_budget).toLocaleString()} ·{' '}
-                    {p.estimated_days} day{p.estimated_days === 1 ? '' : 's'}
+                    ${Number(p.proposed_budget).toLocaleString()} · {p.estimated_days} day
+                    {p.estimated_days === 1 ? '' : 's'}
                   </p>
                 </div>
-                <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                    statusStyles[p.status] || statusStyles.pending
-                  }`}
-                >
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusStyles[p.status] || statusStyles.pending}`}>
                   {p.status}
                 </span>
               </div>
 
-              {p.cover_note && (
-                <p className="mt-3 text-sm text-muted leading-relaxed">
-                  {p.cover_note}
-                </p>
-              )}
+              {p.cover_note && <p className="mt-3 text-sm text-muted leading-relaxed">{p.cover_note}</p>}
 
               {p.status === 'pending' && (
                 <div className="mt-4 flex gap-3">
                   <button
                     onClick={() => decide(p._id, 'accepted')}
-                    disabled={busyId === p._id}
-                    className="bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
+                    className="bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
                   >
                     Accept
                   </button>
                   <button
                     onClick={() => decide(p._id, 'rejected')}
-                    disabled={busyId === p._id}
-                    className="border border-line text-muted hover:text-ink hover:border-brand/40 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
+                    className="border border-line text-muted hover:text-ink hover:border-brand/40 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
                   >
                     Reject
                   </button>

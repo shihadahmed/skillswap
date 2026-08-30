@@ -4,7 +4,27 @@ const auth = require('../middleware/auth');
 const Freelancer = require('../models/Freelancer');
 const cache = require('../utils/cache');
 
-// GET /api/freelancers -> public list with search + pagination
+// Only the fields the card view renders — keeps the browse payload light.
+const FL_PROJECT = {
+  id: 1,
+  name: 1,
+  headline: 1,
+  badge: 1,
+  avatar: 1,
+  hourly_rate: 1,
+  job_success_rate: 1,
+  total_completed_jobs: 1,
+  experience_level: 1,
+  total_earned: 1,
+  availability: 1,
+  verification: 1,
+  skills: 1,
+  location: 1,
+  bio: 1,
+  categories: 1,
+};
+
+// GET /api/freelancers -> public list with search + server-side pagination
 // query: search, category, page (default 1), limit (default 9)
 router.get('/', async (req, res) => {
   try {
@@ -18,53 +38,50 @@ router.get('/', async (req, res) => {
       if (cached) return res.json(cached);
     }
 
+    // Push search + category down to the database so we paginate the true
+    // result set (no loading every document into memory first).
     const filter = {};
     if (category) filter.categories = category;
+    if (search) {
+      const rx = new RegExp(search.trim(), 'i');
+      filter.$or = [{ name: rx }, { headline: rx }, { skills: rx }];
+    }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
     const skip = (pageNum - 1) * limitNum;
 
-    let raw, total;
+    let paged, total;
     if (useShuffle) {
       total = await Freelancer.countDocuments(filter);
       if (total === 0) {
-        raw = [];
+        paged = [];
       } else {
         const sampleSize = Math.min(total, skip + limitNum);
-        raw = await Freelancer.aggregate([
+        paged = await Freelancer.aggregate([
           { $match: filter },
           { $sample: { size: sampleSize } },
+          { $project: FL_PROJECT },
         ]);
+        paged = paged.slice(skip, skip + limitNum);
       }
     } else {
-      raw = await Freelancer.find(filter).sort({ createdAt: -1 });
-      total = raw.length;
+      [paged, total] = await Promise.all([
+        Freelancer.find(filter)
+          .select(FL_PROJECT)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limitNum),
+        Freelancer.countDocuments(filter),
+      ]);
     }
-
-    // Search filter (name / headline / skills) — applied only when a term exists.
-    let list = raw;
-    if (search) {
-      const term = String(search).toLowerCase();
-      list = raw.filter(
-        (f) =>
-          f.name.toLowerCase().includes(term) ||
-          (f.headline && f.headline.toLowerCase().includes(term)) ||
-          (f.skills || []).some((s) => s.toLowerCase().includes(term))
-      );
-      total = list.length;
-    }
-
-    const totalPages = Math.ceil(total / limitNum);
-    const start = (pageNum - 1) * limitNum;
-    const paged = list.slice(start, start + limitNum);
 
     const payload = {
       freelancers: paged,
       page: pageNum,
       limit: limitNum,
       total,
-      totalPages,
+      totalPages: Math.ceil(total / limitNum),
     };
     if (!useShuffle) cache.set(cacheKey, payload);
     res.json(payload);
@@ -78,7 +95,7 @@ router.get('/:id', async (req, res) => {
   try {
     const id = req.params.id;
     const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { id };
-    const f = await Freelancer.findOne(query);
+    const f = await Freelancer.findOne(query).select(FL_PROJECT);
     if (!f) return res.status(404).json({ message: 'Freelancer not found' });
     res.json(f);
   } catch (err) {

@@ -4,20 +4,52 @@ const Task = require('../models/Task');
 const auth = require('../middleware/auth');
 const { requireRole } = auth;
 
-// GET /api/proposals/mine — freelancer's own proposals (with task info)
+// GET /api/proposals/mine — freelancer's own proposals (paginated + summary)
 router.get('/mine', auth, requireRole('freelancer'), async (req, res) => {
   try {
-    const proposals = await Proposal.find({ freelancer_email: req.user.email }).sort({
-      createdAt: -1,
-    });
+    const { page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const filter = { freelancer_email: req.user.email };
+
+    const [all, proposals, total] = await Promise.all([
+      Proposal.find(filter),
+      Proposal.find(filter)
+        .select('task_id freelancer_email proposed_budget estimated_days cover_note deliverable_url status createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      Proposal.countDocuments(filter),
+    ]);
+
     const taskIds = proposals.map((p) => p.task_id);
-    const tasks = await Task.find({ _id: { $in: taskIds } });
+    const tasks = await Task.find({ _id: { $in: taskIds } }).select(
+      'title client_email status description deadline'
+    );
     const map = new Map(tasks.map((t) => [t._id.toString(), t]));
     const data = proposals.map((p) => ({
       ...p.toObject(),
       task: map.get(p.task_id.toString()) || null,
     }));
-    res.json({ proposals: data });
+
+    const summary = {
+      sent: all.length,
+      pending: all.filter((p) => p.status === 'pending').length,
+      accepted: all.filter((p) => p.status === 'accepted').length,
+      earnings: all
+        .filter((p) => p.status === 'accepted')
+        .reduce((s, p) => s + (Number(p.proposed_budget) || 0), 0),
+    };
+
+    res.json({
+      proposals: data,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+      summary,
+    });
   } catch (err) {
     console.error('\n❌ [GET /proposals/mine ERROR]', err);
     res.status(500).json({ message: err.message });

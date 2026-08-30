@@ -55,10 +55,26 @@ router.post('/', auth, requireRole('client'), async (req, res) => {
 // GET /api/reviews?freelancer_email= — public list (best-effort by reviewee)
 router.get('/', async (req, res) => {
   try {
-    const { freelancer_email } = req.query;
+    const { freelancer_email, page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
     const filter = freelancer_email ? { reviewee_email: freelancer_email } : {};
-    const reviews = await Review.find(filter).sort({ createdAt: -1 });
-    res.json({ reviews });
+    const [reviews, total] = await Promise.all([
+      Review.find(filter)
+        .select('reviewer_email reviewee_email rating comment task_id createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      Review.countDocuments(filter),
+    ]);
+    res.json({
+      reviews,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

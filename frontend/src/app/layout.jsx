@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
 import ConditionalChrome from '@/components/ConditionalChrome';
 import Toaster from '@/components/Toaster';
+import Providers from '@/components/Providers';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -21,8 +22,10 @@ export default function RootLayout({ children }) {
     <html lang="en" className={jakarta.variable}>
       <body className="font-sans bg-bg text-ink min-h-screen flex flex-col">
         <AuthProvider>
-          <ConditionalChrome>{children}</ConditionalChrome>
-          <Toaster />
+          <Providers>
+            <ConditionalChrome>{children}</ConditionalChrome>
+            <Toaster />
+          </Providers>
         </AuthProvider>
       </body>
     </html>

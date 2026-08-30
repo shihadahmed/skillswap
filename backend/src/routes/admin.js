@@ -35,6 +35,14 @@ router.get('/stats', admin, async (req, res) => {
       Payment.find(),
     ]);
     const byRole = (r) => users.filter((u) => u.role === r).length;
+    
+    // Calculate platform net profit from stored fee breakdown
+    const platformNetProfit = payments.reduce((s, p) => s + (p.platform_net_profit || 0), 0);
+    const totalClientVolume = payments.reduce((s, p) => s + (p.total_paid_by_client || p.amount || 0), 0);
+    const freelancerPayouts = payments.reduce((s, p) => s + (p.freelancer_net_payout || 0), 0);
+    const gatewayFeesCollected = payments.reduce((s, p) => s + (p.gateway_fee || 0), 0);
+    const vatCollected = payments.reduce((s, p) => s + (p.vat_amount || 0), 0);
+
     res.json({
       users: users.length,
       clients: byRole('client'),
@@ -45,8 +53,19 @@ router.get('/stats', admin, async (req, res) => {
       openTasks: tasks.filter((t) => t.status === 'open').length,
       inProgressTasks: tasks.filter((t) => t.status === 'in_progress').length,
       completedTasks: tasks.filter((t) => t.status === 'completed').length,
-      transactions: payments.length,
-      revenue: payments.reduce((s, p) => s + (p.amount || 0), 0),
+      transactions: payments.slice(0, 5).map((p) => ({
+        _id: p._id,
+        client_email: p.client_email,
+        freelancer_email: p.freelancer_email,
+        task_id: p.task_id,
+        total_paid_by_client: p.total_paid_by_client || p.amount || 0,
+        createdAt: p.createdAt,
+      })),
+      revenue: totalClientVolume,
+      platformNetProfit,
+      freelancerPayouts,
+      gatewayFeesCollected,
+      vatCollected,
     });
   } catch (err) {
     console.error('\n❌ [GET /admin/stats ERROR]', err);
@@ -54,11 +73,28 @@ router.get('/stats', admin, async (req, res) => {
   }
 });
 
-// GET /api/admin/users — list all users
+// GET /api/admin/users — list all users (paginated)
 router.get('/users', admin, async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
-    res.json({ users: users.map(publicUser) });
+    const { page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const [users, total] = await Promise.all([
+      User.find()
+        .select('name email image role skills bio isBlocked rating jobsCompleted createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      User.countDocuments(),
+    ]);
+    res.json({
+      users: users.map(publicUser),
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (err) {
     console.error('\n❌ [GET /admin/users ERROR]', err);
     res.status(500).json({ message: err.message });
@@ -154,11 +190,24 @@ router.delete('/users/:id', admin, async (req, res) => {
   }
 });
 
-// GET /api/admin/tasks — list every task (all statuses)
+// GET /api/admin/tasks — list every task (all statuses, paginated)
 router.get('/tasks', admin, async (req, res) => {
   try {
-    const tasks = await Task.find().sort({ createdAt: -1 });
-    res.json({ tasks });
+    const { page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const [tasks, total] = await Promise.all([
+      Task.find().select('title category description budget status client_email posted proposals_count deadline createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      Task.countDocuments(),
+    ]);
+    res.json({
+      tasks,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (err) {
     console.error('\n❌ [GET /admin/tasks ERROR]', err);
     res.status(500).json({ message: err.message });
@@ -203,11 +252,24 @@ router.delete('/tasks/:id', admin, async (req, res) => {
   }
 });
 
-// GET /api/admin/reviews — list all reviews (moderation)
+// GET /api/admin/reviews — list all reviews (moderation, paginated)
 router.get('/reviews', admin, async (req, res) => {
   try {
-    const reviews = await Review.find().sort({ createdAt: -1 });
-    res.json({ reviews });
+    const { page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const [reviews, total] = await Promise.all([
+      Review.find().select('reviewer_email reviewee_email rating comment task_id createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      Review.countDocuments(),
+    ]);
+    res.json({
+      reviews,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (err) {
     console.error('\n❌ [GET /admin/reviews ERROR]', err);
     res.status(500).json({ message: err.message });
@@ -237,11 +299,24 @@ router.delete('/reviews/:id', admin, async (req, res) => {
   }
 });
 
-// GET /api/admin/transactions — list all payments
+// GET /api/admin/transactions — list all payments (paginated)
 router.get('/transactions', admin, async (req, res) => {
   try {
-    const transactions = await Payment.find().sort({ createdAt: -1 });
-    res.json({ transactions });
+    const { page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const [transactions, total] = await Promise.all([
+      Payment.find().select('client_email freelancer_email task_id amount payment_status paid_at createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      Payment.countDocuments(),
+    ]);
+    res.json({
+      transactions,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (err) {
     console.error('\n❌ [GET /admin/transactions ERROR]', err);
     res.status(500).json({ message: err.message });

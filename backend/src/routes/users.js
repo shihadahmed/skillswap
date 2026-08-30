@@ -2,25 +2,36 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const User = require('../models/User');
 
-// GET /api/users/explore -> list users excluding self, with optional search
+// GET /api/users/explore -> list users excluding self, with optional search + pagination
 router.get('/explore', auth, async (req, res) => {
   try {
-    const { q, skill } = req.query;
+    const { q, skill, page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+
     const filter = { _id: { $ne: req.userId } };
-    if (skill) {
-      filter.skills = new RegExp(skill, 'i');
-    }
-    let users = await User.find(filter).select('-password');
+    if (skill) filter.skills = new RegExp(skill, 'i');
     if (q) {
-      const term = q.toLowerCase();
-      users = users.filter(
-        (u) =>
-          u.name.toLowerCase().includes(term) ||
-          (u.bio && u.bio.toLowerCase().includes(term)) ||
-          (u.skills || []).some((s) => s.toLowerCase().includes(term))
-      );
+      const rx = new RegExp(q.trim(), 'i');
+      filter.$or = [{ name: rx }, { bio: rx }, { skills: rx }];
     }
-    res.json(users);
+
+    const [users, total] = await Promise.all([
+      User.find(filter)
+        .select('name email image role skills bio rating jobsCompleted createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      User.countDocuments(filter),
+    ]);
+    res.json({
+      users,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

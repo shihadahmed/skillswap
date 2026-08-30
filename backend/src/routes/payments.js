@@ -4,6 +4,7 @@ const { requireRole } = auth;
 const Payment = require('../models/Payment');
 const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
+const { calculateMarketplaceFees } = require('../lib/fees');
 
 // POST /api/payments/checkout — dummy one-click checkout for an accepted proposal
 router.post('/checkout', auth, requireRole('client'), async (req, res) => {
@@ -23,11 +24,27 @@ router.post('/checkout', auth, requireRole('client'), async (req, res) => {
     if (!accepted)
       return res.status(400).json({ message: 'No accepted proposal for this task' });
 
+    // Calculate full marketplace fee breakdown
+    const fees = calculateMarketplaceFees(accepted.proposed_budget);
+
     const payment = await Payment.create({
       client_email: req.user.email,
       freelancer_email: accepted.freelancer_email,
       task_id: task._id,
-      amount: accepted.proposed_budget,
+
+      // Store complete fee breakdown
+      base_bid_amount: fees.baseAmount,
+      freelancer_fee_deducted: fees.freelancerFeeDeducted,
+      freelancer_net_payout: fees.freelancerNetPayout,
+      client_service_fee: fees.clientServiceFee,
+      vat_amount: fees.vatAmount,
+      gateway_fee: fees.gatewayFee,
+      total_paid_by_client: fees.totalPaidByClient,
+      platform_net_profit: fees.platformNetProfit,
+
+      // Legacy field for backward compatibility
+      amount: fees.totalPaidByClient,
+
       payment_status: 'paid',
       paid_at: new Date(),
     });

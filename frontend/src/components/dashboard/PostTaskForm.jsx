@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { useRevalidate } from '@/lib/hooks';
 import { toast } from 'react-toastify';
 
 const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
 
 export default function PostTaskForm({ onCreated }) {
+  const revalidate = useRevalidate();
   const [form, setForm] = useState({
     title: '',
     category: 'Other',
@@ -42,6 +44,12 @@ export default function PostTaskForm({ onCreated }) {
         budget: '',
         deadline: '',
       });
+      // Instantly refresh the client's task list and the public marketplace.
+      revalidate(
+        (k) =>
+          typeof k === 'string' &&
+          (k.startsWith('/tasks/mine') || k === '/tasks' || k.startsWith('/tasks?'))
+      );
       if (onCreated) onCreated();
     } catch (err) {
       setError(err.message || 'Failed to post task.');
