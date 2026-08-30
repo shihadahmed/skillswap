@@ -8,6 +8,21 @@ const cache = require('../utils/cache');
 
 const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
 
+// Only the fields the card/list views actually render — keeps payloads small.
+const TASK_PROJECT = {
+  title: 1,
+  category: 1,
+  description: 1,
+  budget: 1,
+  status: 1,
+  client: 1,
+  client_email: 1,
+  posted: 1,
+  proposals_count: 1,
+  deadline: 1,
+  createdAt: 1,
+};
+
 const clientView = (u) =>
   u ? { name: u.name, image: u.image, email: u.email } : null;
 
@@ -86,12 +101,13 @@ router.get('/', async (req, res) => {
         const sampled = await Task.aggregate([
           { $match: filter },
           { $sample: { size: sampleSize } },
+          { $project: TASK_PROJECT },
         ]);
         tasks = sampled.slice(skip, skip + limitNum);
       }
     } else {
       [tasks, total] = await Promise.all([
-        Task.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+        Task.find(filter).select(TASK_PROJECT).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
         Task.countDocuments(filter),
       ]);
     }
@@ -113,14 +129,42 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/tasks/mine — client's own tasks
+// GET /api/tasks/mine — client's own tasks (paginated + summary stats)
 router.get('/mine', auth, requireRole('client'), async (req, res) => {
   try {
-    const tasks = await Task.find({ client_email: req.user.email }).sort({
-      createdAt: -1,
-    });
+    const { page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const filter = { client_email: req.user.email };
+
+    // `all` drives client-side summary stats; the paginated slice feeds the table.
+    const [all, tasks, total] = await Promise.all([
+      Task.find(filter),
+      Task.find(filter).select(TASK_PROJECT).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      Task.countDocuments(filter),
+    ]);
+
     const withCounts = await withProposalCounts(tasks);
-    res.json({ tasks: withCounts });
+    const spent = all
+      .filter((t) => t.status === 'completed')
+      .reduce((s, t) => s + (Number(t.budget) || 0), 0);
+    const summary = {
+      total: all.length,
+      open: all.filter((t) => t.status === 'open').length,
+      in_progress: all.filter((t) => t.status === 'in_progress').length,
+      completed: all.filter((t) => t.status === 'completed').length,
+      spent,
+    };
+
+    res.json({
+      tasks: withCounts,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+      summary,
+    });
   } catch (err) {
     console.error('\n❌ [GET /tasks/mine ERROR]', err);
     res.status(500).json({ message: err.message });
@@ -130,7 +174,7 @@ router.get('/mine', auth, requireRole('client'), async (req, res) => {
 // GET /api/tasks/:id — public task details (+ proposals if owner)
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
-    const task = await Task.findById(req.params.id);
+    const task = await Task.findById(req.params.id).select(TASK_PROJECT);
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
     const data = (await attachClients([task]))[0];
@@ -138,9 +182,9 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     let proposals = [];
     if (isOwner) {
-      proposals = await Proposal.find({ task_id: task._id }).sort({
-        createdAt: -1,
-      });
+      proposals = await Proposal.find({ task_id: task._id })
+        .select('freelancer_email proposed_budget estimated_days cover_note status createdAt')
+        .sort({ createdAt: -1 });
     }
     const count = await Proposal.countDocuments({
       $or: [{ task_id: task._id }, { task_id: task._id.toString() }],
@@ -239,9 +283,19 @@ router.post('/:id/proposals', auth, requireRole('freelancer'), async (req, res) 
     if (task.status !== 'open')
       return res.status(400).json({ message: 'This task is no longer accepting proposals' });
 
-    const { proposed_budget, estimated_days, cover_note } = req.body;
+    const { proposed_budget, estimated_days, cover_note, milestones } = req.body;
     if (proposed_budget == null || estimated_days == null)
       return res.status(400).json({ message: 'Proposed budget and estimated days are required' });
+
+    // Validate milestones if provided (By Milestone mode)
+    if (milestones && Array.isArray(milestones)) {
+      const totalMilestoneAmount = milestones.reduce((sum, m) => sum + (m.amount || 0), 0);
+      if (totalMilestoneAmount !== proposed_budget) {
+        return res.status(400).json({
+          message: `Milestone amounts (${totalMilestoneAmount}) must equal total bid amount (${proposed_budget})`,
+        });
+      }
+    }
 
     const existing = await Proposal.findOne({
       task_id: task._id,
@@ -257,6 +311,7 @@ router.post('/:id/proposals', auth, requireRole('freelancer'), async (req, res) 
       proposed_budget,
       estimated_days,
       cover_note: cover_note || '',
+      milestones: milestones || [],
     });
     res.status(201).json({ proposal });
   } catch (err) {

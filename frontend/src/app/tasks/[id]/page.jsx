@@ -333,11 +333,9 @@ export default async function TaskDetailPage({ params }) {
         </div>
 
         {/* Apply / manage area */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-          <div>
-            <ProposalForm taskId={task._id} taskTitle={task.title} />
-          </div>
-          <div className="lg:pt-0">
+        <div className="mt-8">
+          <ProposalForm taskId={task._id} taskTitle={task.title} />
+          <div className="mt-6">
             <ProposalManager
               taskId={task._id}
               ownerEmail={task.client_email || task.client?.email}

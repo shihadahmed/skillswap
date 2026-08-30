@@ -8,6 +8,13 @@ const proposalSchema = new mongoose.Schema(
     estimated_days: { type: Number, required: true, min: 1 },
     cover_note: { type: String, default: '' },
     deliverable_url: { type: String, default: '' },
+    milestones: [
+      {
+        title: { type: String, required: true },
+        estimated_days: { type: Number, required: true, min: 1 },
+        amount: { type: Number, required: true, min: 0 },
+      },
+    ],
     status: {
       type: String,
       enum: ['pending', 'accepted', 'rejected'],
