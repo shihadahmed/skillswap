@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Chart as ChartJS } from 'chart.js';
+import { Chart as ChartJS, LinearScale, CategoryScale, BarElement, Tooltip, Legend } from 'chart.js';
+import 'chart.js/auto';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { useAdminOverview } from '@/lib/hooks';
