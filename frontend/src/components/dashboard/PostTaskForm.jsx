@@ -142,43 +142,44 @@ export default function PostTaskForm({ onCreated }) {
   };
 
   return (
-    <form onSubmit={post} className="bg-surface border border-line rounded-2xl p-6 shadow-soft space-y-6">
-      <h2 className="font-semibold text-ink">Post a new task</h2>
+    <form onSubmit={post} className="bg-surface border border-line rounded-2xl p-4 sm:p-6 shadow-soft space-y-4">
+      <h2 className="font-semibold text-ink text-center">Post a new task</h2>
       {error && (
-        <p className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-lg px-3 py-2">
+        <p className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-lg px-3 py-2 mx-0 text-start">
           {error}
         </p>
       )}
 
-      {/* Title & Category */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink mb-1">Title <span className="text-danger">*</span></label>
-          <input
-            required
-            value={form.title}
-            onChange={(e) => handleChange('title', e.target.value)}
-            placeholder="e.g. Build a React Native onboarding flow"
-            className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-          />
-        </div>
+      {/* Title */}
+      <div>
+        <label className="block text-sm font-medium text-ink mb-1">Title <span className="text-danger">*</span></label>
+        <input
+          required
+          value={form.title}
+          onChange={(e) => handleChange('title', e.target.value)}
+          placeholder="e.g. Build a React Native onboarding flow"
+          className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+        />
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">Category</label>
-          <select
-            value={form.category}
-            onChange={(e) => handleChange('category', e.target.value)}
-            className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Category */}
+      <div>
+        <label className="block text-sm font-medium text-ink mb-1">Category</label>
+        <select
+          value={form.category}
+          onChange={(e) => handleChange('category', e.target.value)}
+          className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </div>
 
-        {/* Budget Fields */}
+      {/* Budget Fields - full width on mobile, side-by-side on sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-ink mb-1">Budget Amount <span className="text-danger">*</span></label>
           <input
@@ -282,49 +283,52 @@ export default function PostTaskForm({ onCreated }) {
             ))}
           </select>
         </div>
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-ink mb-1">Estimated Duration</label>
-          <input
-            value={form.estimated_duration}
-            onChange={(e) => handleChange('estimated_duration', e.target.value)}
-            placeholder="e.g. 2 weeks, 1 month"
-            className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-          />
-        </div>
+      {/* Estimated Duration - full width */}
+      <div>
+        <label className="block text-sm font-medium text-ink mb-1">Estimated Duration</label>
+        <input
+          value={form.estimated_duration}
+          onChange={(e) => handleChange('estimated_duration', e.target.value)}
+          placeholder="e.g. 2 weeks, 1 month"
+          className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+        />
+      </div>
 
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink mb-1">Skills Required (comma separated)</label>
-          <input
-            value={form.skills}
-            onChange={(e) => handleChange('skills', e.target.value)}
-            placeholder="e.g. React, Node.js, TypeScript, MongoDB"
-            className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-          />
-        </div>
+      {/* Skills - full width */}
+      <div>
+        <label className="block text-sm font-medium text-ink mb-1">Skills Required (comma separated)</label>
+        <input
+          value={form.skills}
+          onChange={(e) => handleChange('skills', e.target.value)}
+          placeholder="e.g. React, Node.js, TypeScript"
+          className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+        />
+      </div>
 
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink mb-1">Deadline <span className="text-danger">*</span></label>
-          <input
-            required
-            type="date"
-            value={form.deadline}
-            onChange={(e) => handleChange('deadline', e.target.value)}
-            min={new Date().toISOString().split('T')[0]}
-            className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-          />
-        </div>
+      {/* Deadline - full width */}
+      <div>
+        <label className="block text-sm font-medium text-ink mb-1">Deadline <span className="text-danger">*</span></label>
+        <input
+          required type="date"
+          value={form.deadline}
+          onChange={(e) => handleChange('deadline', e.target.value)}
+          min={new Date().toISOString().split('T')[0]}
+          className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+        />
+      </div>
 
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-ink mb-1">Description</label>
-          <textarea
-            rows={5}
-            value={form.description}
-            onChange={(e) => handleChange('description', e.target.value)}
-            placeholder="Describe the task, deliverables, requirements, and any other details…"
-            className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-          />
-        </div>
+      {/* Description - full width */}
+      <div>
+        <label className="block text-sm font-medium text-ink mb-1">Description</label>
+        <textarea
+          rows={5}
+          value={form.description}
+          onChange={(e) => handleChange('description', e.target.value)}
+          placeholder="Describe the task, deliverables, requirements, and any other details…"
+          className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+        />
       </div>
 
       <div className="bg-brand/5 border border-brand/20 rounded-xl p-4 text-sm text-brand">
