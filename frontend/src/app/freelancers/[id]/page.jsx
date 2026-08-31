@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { API_URL } from '@/lib/api';
+import ProposalForm from '@/components/ProposalForm';
 
 export const dynamic = 'force-dynamic';
 
