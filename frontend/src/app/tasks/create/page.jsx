@@ -6,7 +6,7 @@ export default function CreateTaskPage() {
   return (
     <ProtectedRoute roles={['client']}>
       <DashboardSidebar>
-        <div className="p-6 md:p-10 max-w-2xl mx-auto w-full">
+        <div className="p-6 md:p-10 max-w-6xl mx-auto w-full">
           <header>
             <h1 className="text-2xl font-extrabold tracking-tight text-ink">
               Post a Task
