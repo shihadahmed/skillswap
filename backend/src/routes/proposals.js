@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const Proposal = require('../models/Proposal');
 const Task = require('../models/Task');
+const Freelancer = require('../models/Freelancer');
 const auth = require('../middleware/auth');
 const { requireRole } = auth;
 
@@ -121,6 +122,41 @@ router.post('/:id/deliver', auth, requireRole('freelancer'), async (req, res) =>
     res.json({ proposal, task });
   } catch (err) {
     console.error('\n❌ [POST /proposals/:id/deliver ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// POST /api/proposals -> create proposal (client posts on behalf of themselves)
+// This is used when a client wants to hire a freelancer without a task
+router.post('/', auth, requireRole('client'), async (req, res) => {
+  try {
+    const { freelancer_email, proposed_budget, estimated_days, cover_note } = req.body;
+    if (!freelancer_email || !proposed_budget || !estimated_days)
+      return res.status(400).json({ message: 'freelancer_email, proposed_budget and estimated_days are required' });
+
+    // Check if freelancer exists
+    const freelancer = await Freelancer.findOne({ email: freelancer_email });
+    if (!freelancer) return res.status(404).json({ message: 'Freelancer not found' });
+
+    // Check if there's already a pending proposal for this freelancer
+    const existing = await Proposal.findOne({
+      freelancer_email,
+      status: 'pending',
+    });
+    if (existing)
+      return res.status(409).json({ message: 'You already have a pending proposal for this freelancer' });
+
+    const proposal = await Proposal.create({
+      task_id: '', // No specific task, general hire
+      freelancer_email,
+      proposed_budget,
+      estimated_days,
+      cover_note: cover_note || '',
+      status: 'pending',
+    });
+    res.status(201).json({ proposal });
+  } catch (err) {
+    console.error('\n❌ [POST /proposals ERROR]', err);
     res.status(500).json({ message: err.message });
   }
 });
