@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { Chart as ChartJS, BarElement, LineElement, Tooltip, Legend } from 'chart.js';
+import 'chart.js/auto';
 import { api } from '@/lib/api';
 import { useClientOverview, useRevalidate } from '@/lib/hooks';
 import { toast } from 'react-toastify';
@@ -124,6 +126,7 @@ export default function ClientTasks() {
     { label: 'Total Spent', value: fmtBudget(summary.spent) },
   ];
 
+  const chartRef = useRef(null);
   const showSkeleton = isLoading && !data;
 
   return (
@@ -142,6 +145,8 @@ export default function ClientTasks() {
       )}
 
       <div className="mt-10">
+        <h2 className="text-xl font-bold text-ink mb-4">Budget Over Time</h2>
+        <canvas id="clientBudgetChart" className="w-full h-64" />
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-lg font-bold text-ink">Posted Tasks</h2>
           <span className="text-xs text-muted">
@@ -267,4 +272,53 @@ export default function ClientTasks() {
       </Modal>
     </div>
   );
+
+  useEffect(() => {
+    const ctx = document.getElementById('clientBudgetChart')?.getContext('2d');
+    if (!ctx) return;
+
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const budgetData = months.map((month, index) => {
+      const date = new Date(2024, index);
+      const monthTasks = data?.mine?.tasks?.filter((t) => {
+        const tDate = new Date(t.createdAt);
+        return tDate.getMonth() === date.getMonth();
+      }) || [];
+      return monthTasks.reduce((sum, t) => sum + (t.budget || 0), 0);
+    });
+
+    chartRef.current = new ChartJS(ctx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Budget',
+          data: budgetData,
+          backgroundColor: 'rgba(79, 70, 229, 0.5)',
+          borderColor: '#4F46E5',
+          borderWidth: 1,
+        }],
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 100 },
+          },
+        },
+      },
+    });
+
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, [data]);
+
 }

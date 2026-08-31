@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Chart as ChartJS, BarElement, LineElement, Tooltip, Legend } from 'chart.js';
+import 'chart.js/auto';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useFreelancerOverview, useRevalidate } from '@/lib/hooks';

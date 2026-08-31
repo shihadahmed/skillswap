@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Chart as ChartJS, LinearScale, CategoryScale, BarElement, Tooltip, Legend } from 'chart.js';
 import 'chart.js/auto';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -37,6 +37,8 @@ export default function AdminDashboardPage() {
   ];
   const Active = tabs.find((t) => t.key === tab)?.Comp;
 
+  const chartRef = useRef(null);
+
   const recentPayments = stats
     ? [...stats.transactions]
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -47,9 +49,14 @@ export default function AdminDashboardPage() {
     const ctx = document.getElementById('revenueChart')?.getContext('2d');
     if (!ctx) return;
 
+    // Destroy existing chart if it exists
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+
     // Calculate monthly revenue from transactions
     const monthlyRevenue = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, index) => {
-      const date = new Date(2024, index); // 2024 is a leap year but month index 0-11
+      const date = new Date(2024, index);
       const monthTransactions = stats?.transactions?.filter(tx => {
         const txDate = new Date(tx.createdAt);
         return txDate.getMonth() === date.getMonth();
@@ -57,7 +64,7 @@ export default function AdminDashboardPage() {
       return monthTransactions.reduce((sum, tx) => sum + (tx.total_paid_by_client || tx.amount || 0), 0);
     });
 
-    new ChartJS(ctx, {
+    chartRef.current = new ChartJS(ctx, {
       type: 'bar',
       data: {
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
@@ -81,7 +88,13 @@ export default function AdminDashboardPage() {
         },
       },
     });
-  }, [stats, recentPayments]);
+
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, [stats]);
 
   return (
     <ProtectedRoute roles={['admin']}>
