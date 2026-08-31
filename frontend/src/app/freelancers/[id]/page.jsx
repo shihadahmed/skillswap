@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { API_URL } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,7 +70,6 @@ function Stat({ label, value }) {
 export default async function FreelancerDetailPage({ params }) {
   const f = await getFreelancer(params.id);
   if (!f) notFound();
-  const { user } = useAuth();
   const reviews = await getReviews(f.email);
 
   const rate = f.hourly_rate?.amount ? `$${f.hourly_rate.amount}/hr` : '—';
@@ -242,9 +240,7 @@ export default async function FreelancerDetailPage({ params }) {
         {/* Hire Proposal Form for Clients */}
         <div className="mt-8 pt-8 border-t border-line">
           <h2 className="text-lg font-bold text-ink mb-4">Hire this Freelancer</h2>
-          {user && user.role === 'client' ? (
-            <ProposalForm freelancerId={f.id} freelancerName={f.name} />
-          ) : null}
+          <ProposalForm freelancerId={f.id} freelancerName={f.name} />
         </div>
 
         {reviews.length > 0 && (
