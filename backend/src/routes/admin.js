@@ -7,6 +7,7 @@ const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
 const Payment = require('../models/Payment');
 const Review = require('../models/Review');
+const Notification = require('../models/Notification');
 
 const admin = [auth, requireRole('admin')];
 
@@ -198,7 +199,7 @@ router.get('/tasks', admin, async (req, res) => {
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
     const skip = (pageNum - 1) * limitNum;
     const [tasks, total] = await Promise.all([
-      Task.find().select('title category description budget status client_email posted proposals_count deadline createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      Task.find().select('title category description budget priority urgency experience_level project_type estimated_duration skills status client_email posted proposals_count deadline rejection_reason createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
       Task.countDocuments(),
     ]);
     res.json({
@@ -220,20 +221,84 @@ router.put('/tasks/:id', admin, async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    const { title, category, description, budget, deadline, status } = req.body;
+    const {
+      title,
+      category,
+      description,
+      budget,
+      priority,
+      urgency,
+      experience_level,
+      project_type,
+      estimated_duration,
+      skills,
+      deadline,
+      status,
+    } = req.body;
     const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
     if (title != null) task.title = title;
     if (category != null) task.category = CATEGORIES.includes(category) ? category : task.category;
     if (description != null) task.description = description;
     if (budget != null) task.budget = budget;
+    if (priority != null) task.priority = priority;
+    if (urgency != null) task.urgency = urgency;
+    if (experience_level != null) task.experience_level = experience_level;
+    if (project_type != null) task.project_type = project_type;
+    if (estimated_duration != null) task.estimated_duration = estimated_duration;
+    if (skills != null) task.skills = Array.isArray(skills) ? skills : [];
     if (deadline != null) task.deadline = deadline ? String(deadline) : '';
-    if (status != null && ['open', 'in_progress', 'completed'].includes(status))
+    if (status != null && ['open', 'in_progress', 'completed', 'pending', 'rejected', 'cancelled'].includes(status))
       task.status = status;
 
     await task.save();
     res.json({ task });
   } catch (err) {
     console.error('\n❌ [PUT /admin/tasks/:id ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/admin/tasks/:id/approve — approve a pending task
+router.put('/tasks/:id/approve', admin, async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    if (task.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending tasks can be approved' });
+    }
+
+    const { rejection_reason } = req.body;
+    const approved = !rejection_reason;
+
+    if (approved) {
+      task.status = 'open';
+      task.rejection_reason = '';
+    } else {
+      task.status = 'rejected';
+      task.rejection_reason = rejection_reason || 'No reason provided';
+    }
+
+    await task.save();
+
+    // Create notification for the client
+    const notificationType = approved ? 'task_approved' : 'task_rejected';
+    const title = approved ? 'Task Approved' : 'Task Rejected';
+    const message = approved
+      ? `Your task "${task.title}" has been approved and is now live on the marketplace.`
+      : `Your task "${task.title}" was rejected. Reason: ${task.rejection_reason}`;
+
+    await Notification.create({
+      user_email: task.client_email,
+      type: notificationType,
+      title,
+      message,
+      related_task_id: task._id,
+    });
+
+    res.json({ task, notification: { type: notificationType, title, message } });
+  } catch (err) {
+    console.error('\n❌ [PUT /admin/tasks/:id/approve ERROR]', err);
     res.status(500).json({ message: err.message });
   }
 });

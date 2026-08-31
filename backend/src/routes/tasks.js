@@ -14,12 +14,19 @@ const TASK_PROJECT = {
   category: 1,
   description: 1,
   budget: 1,
+  priority: 1,
+  urgency: 1,
+  experience_level: 1,
+  project_type: 1,
+  estimated_duration: 1,
+  skills: 1,
   status: 1,
   client: 1,
   client_email: 1,
   posted: 1,
   proposals_count: 1,
   deadline: 1,
+  rejection_reason: 1,
   createdAt: 1,
 };
 
@@ -205,9 +212,22 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // POST /api/tasks — create (client, or admin posting on behalf of a client)
 router.post('/', auth, requireRole('client', 'admin'), async (req, res) => {
   try {
-    const { title, category, description, budget, deadline } = req.body;
-    if (!title || budget == null)
-      return res.status(400).json({ message: 'Title and budget are required' });
+    const {
+      title,
+      category,
+      description,
+      budget,
+      priority,
+      urgency,
+      experience_level,
+      project_type,
+      estimated_duration,
+      skills,
+      deadline,
+    } = req.body;
+
+    if (!title || !budget?.amount)
+      return res.status(400).json({ message: 'Title and budget amount are required' });
 
     // A client posts under their own email; an admin may post on behalf of
     // any client by passing `client_email`.
@@ -216,14 +236,28 @@ router.post('/', auth, requireRole('client', 'admin'), async (req, res) => {
         ? req.body.client_email
         : req.user.email;
 
+    // Build budget object
+    const budgetObj = {
+      amount: Number(budget.amount),
+      currency: budget.currency || 'USD',
+      type: budget.type || 'fixed',
+    };
+
     const task = await Task.create({
       title,
       category: CATEGORIES.includes(category) ? category : 'Other',
       description: description || '',
-      budget,
+      budget: budgetObj,
+      priority: priority || 'medium',
+      urgency: urgency || 'flexible',
+      experience_level: experience_level || 'intermediate',
+      project_type: project_type || 'one_time',
+      estimated_duration: estimated_duration || '',
+      skills: Array.isArray(skills) ? skills : [],
       deadline: deadline ? String(deadline) : '',
       posted: new Date().toLocaleDateString('en-GB'),
       client_email,
+      status: 'pending', // Requires admin approval
     });
     res.status(201).json({ task });
   } catch (err) {
@@ -240,12 +274,31 @@ router.put('/:id', auth, requireRole('client'), async (req, res) => {
     if (task.client_email !== req.user.email)
       return res.status(403).json({ message: 'You can only edit your own tasks' });
 
-    const { title, category, description, budget, deadline, status } = req.body;
+    const {
+      title,
+      category,
+      description,
+      budget,
+      priority,
+      urgency,
+      experience_level,
+      project_type,
+      estimated_duration,
+      skills,
+      deadline,
+      status,
+    } = req.body;
     if (title != null) task.title = title;
     if (category != null)
       task.category = CATEGORIES.includes(category) ? category : task.category;
     if (description != null) task.description = description;
     if (budget != null) task.budget = budget;
+    if (priority != null) task.priority = priority;
+    if (urgency != null) task.urgency = urgency;
+    if (experience_level != null) task.experience_level = experience_level;
+    if (project_type != null) task.project_type = project_type;
+    if (estimated_duration != null) task.estimated_duration = estimated_duration;
+    if (skills != null) task.skills = Array.isArray(skills) ? skills : [];
     if (deadline != null) task.deadline = deadline ? String(deadline) : '';
     if (status != null && ['open', 'in_progress', 'completed'].includes(status))
       task.status = status;

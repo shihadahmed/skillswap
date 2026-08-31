@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
+import NotificationBell from '@/components/NotificationBell';
 
 const navByRole = {
   client: [
@@ -11,12 +12,14 @@ const navByRole = {
     { href: '/dashboard/client/my-tasks', label: 'My Tasks' },
     { href: '/tasks/create', label: 'Post a Task' },
     { href: '/freelancers', label: 'Browse Freelancers' },
+    { href: '/notifications', label: 'Notifications' },
   ],
   freelancer: [
     { href: '/dashboard/freelancer', label: 'Overview' },
     { href: '/tasks', label: 'Browse Tasks' },
     { href: '/dashboard/freelancer/my-proposals', label: 'My Proposals' },
     { href: '/profile', label: 'Profile Settings' },
+    { href: '/notifications', label: 'Notifications' },
   ],
   admin: [
     { href: '/dashboard/admin', label: 'Overview' },
@@ -24,6 +27,7 @@ const navByRole = {
     { href: '/dashboard/admin/tasks', label: 'Manage Tasks' },
     { href: '/dashboard/admin/transactions', label: 'Transactions' },
     { href: '/dashboard/admin/reviews', label: 'Reviews' },
+    { href: '/notifications', label: 'Notifications' },
   ],
 };
 
@@ -70,6 +74,7 @@ export default function DashboardSidebar({ children }) {
         </nav>
 
         <div className="mt-auto pt-4 border-t border-line flex items-center gap-3">
+          <NotificationBell />
           <img
             src={avatar}
             alt=""
@@ -101,6 +106,7 @@ export default function DashboardSidebar({ children }) {
         <div className="flex items-center justify-between px-4 h-14">
           <Logo />
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <span className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
               {user.role}
             </span>

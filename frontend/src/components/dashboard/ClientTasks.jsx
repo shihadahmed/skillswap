@@ -33,16 +33,62 @@ export default function ClientTasks() {
 
   const [expanded, setExpanded] = useState(null);
   const [editTask, setEditTask] = useState(null);
-  const [form, setForm] = useState({ title: '', category: 'Other', budget: '', deadline: '', description: '' });
+  const [form, setForm] = useState({
+    title: '',
+    category: 'Other',
+    budget: { amount: '', currency: 'USD', type: 'fixed' },
+    priority: 'medium',
+    urgency: 'flexible',
+    experience_level: 'intermediate',
+    project_type: 'one_time',
+    estimated_duration: '',
+    skills: '',
+    deadline: '',
+    description: '',
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+  const URGENCIES = ['flexible', 'soon', 'asap'];
+  const EXPERIENCE_LEVELS = ['entry', 'intermediate', 'expert'];
+  const PROJECT_TYPES = ['one_time', 'ongoing', 'contract'];
+  const BUDGET_TYPES = ['fixed', 'hourly'];
+  const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
+
+  const priorityLabels = { low: 'Low', medium: 'Medium', high: 'High', urgent: 'Urgent' };
+  const urgencyLabels = { flexible: 'Flexible', soon: 'Needed Soon', asap: 'ASAP' };
+  const experienceLabels = { entry: 'Entry Level', intermediate: 'Intermediate', expert: 'Expert' };
+  const projectTypeLabels = { one_time: 'One-time Project', ongoing: 'Ongoing Work', contract: 'Contract Position' };
+  const budgetTypeLabels = { fixed: 'Fixed Price', hourly: 'Hourly Rate' };
+
+  const handleFormChange = (field, value) => {
+    if (field.startsWith('budget.')) {
+      const budgetField = field.replace('budget.', '');
+      setForm((prev) => ({ ...prev, budget: { ...prev.budget, [budgetField]: value } }));
+    } else {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    }
+  };
+
   const openEdit = (t) => {
     setEditTask(t);
+    const budget = t.budget || { amount: t.budget, currency: 'USD', type: 'fixed' };
+    const skills = Array.isArray(t.skills) ? t.skills.join(', ') : '';
     setForm({
       title: t.title,
       category: t.category,
-      budget: t.budget,
+      budget: {
+        amount: budget.amount || budget,
+        currency: budget.currency || 'USD',
+        type: budget.type || 'fixed',
+      },
+      priority: t.priority || 'medium',
+      urgency: t.urgency || 'flexible',
+      experience_level: t.experience_level || 'intermediate',
+      project_type: t.project_type || 'one_time',
+      estimated_duration: t.estimated_duration || '',
+      skills,
       deadline: t.deadline || '',
       description: t.description || '',
     });
@@ -54,10 +100,21 @@ export default function ClientTasks() {
     setSubmitting(true);
     setError('');
     try {
+      const skillsArray = form.skills.split(',').map((s) => s.trim()).filter(Boolean);
       const updated = await api.put(`/tasks/${editTask._id}`, {
         title: form.title,
         category: form.category,
-        budget: Number(form.budget),
+        budget: {
+          amount: Number(form.budget.amount),
+          currency: form.budget.currency,
+          type: form.budget.type,
+        },
+        priority: form.priority,
+        urgency: form.urgency,
+        experience_level: form.experience_level,
+        project_type: form.project_type,
+        estimated_duration: form.estimated_duration,
+        skills: skillsArray,
         deadline: form.deadline,
         description: form.description,
       });
@@ -219,11 +276,11 @@ export default function ClientTasks() {
             <p className="text-sm text-danger bg-danger/10 border border-danger/30 rounded-lg px-3 py-2">{error}</p>
           )}
           <div>
-            <label className="block text-sm font-medium text-ink mb-1">Title</label>
+            <label className="block text-sm font-medium text-ink mb-1">Title <span className="text-danger">*</span></label>
             <input
               required
               value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onChange={(e) => handleFormChange('title', e.target.value)}
               className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
             />
           </div>
@@ -232,7 +289,7 @@ export default function ClientTasks() {
               <label className="block text-sm font-medium text-ink mb-1">Category</label>
               <select
                 value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                onChange={(e) => handleFormChange('category', e.target.value)}
                 className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
               >
                 {CATEGORIES.map((c) => (
@@ -241,31 +298,126 @@ export default function ClientTasks() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-ink mb-1">Budget (USD)</label>
+              <label className="block text-sm font-medium text-ink mb-1">Budget Amount <span className="text-danger">*</span></label>
               <input
-                required type="number" min="1"
-                value={form.budget}
-                onChange={(e) => setForm({ ...form, budget: e.target.value })}
+                required type="number" min="1" step="1"
+                value={form.budget.amount}
+                onChange={(e) => handleFormChange('budget.amount', e.target.value)}
                 className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1">Deadline</label>
-            <input type="date" value={form.deadline}
-              onChange={(e) => setForm({ ...form, deadline: e.target.value })}
-              className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink mb-1">Description</label>
-            <textarea rows={4} value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
-            />
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Currency</label>
+              <select
+                value={form.budget.currency}
+                onChange={(e) => handleFormChange('budget.currency', e.target.value)}
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Budget Type</label>
+              <select
+                value={form.budget.type}
+                onChange={(e) => handleFormChange('budget.type', e.target.value)}
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              >
+                {BUDGET_TYPES.map((b) => (
+                  <option key={b} value={b}>{budgetTypeLabels[b]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Priority</label>
+              <select
+                value={form.priority}
+                onChange={(e) => handleFormChange('priority', e.target.value)}
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              >
+                {PRIORITIES.map((p) => (
+                  <option key={p} value={p}>{priorityLabels[p]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Urgency</label>
+              <select
+                value={form.urgency}
+                onChange={(e) => handleFormChange('urgency', e.target.value)}
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              >
+                {URGENCIES.map((u) => (
+                  <option key={u} value={u}>{urgencyLabels[u]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Experience Level</label>
+              <select
+                value={form.experience_level}
+                onChange={(e) => handleFormChange('experience_level', e.target.value)}
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              >
+                {EXPERIENCE_LEVELS.map((e) => (
+                  <option key={e} value={e}>{experienceLabels[e]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Project Type</label>
+              <select
+                value={form.project_type}
+                onChange={(e) => handleFormChange('project_type', e.target.value)}
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              >
+                {PROJECT_TYPES.map((p) => (
+                  <option key={p} value={p}>{projectTypeLabels[p]}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1">Estimated Duration</label>
+              <input
+                value={form.estimated_duration}
+                onChange={(e) => handleFormChange('estimated_duration', e.target.value)}
+                placeholder="e.g. 2 weeks, 1 month"
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-ink mb-1">Skills Required (comma separated)</label>
+              <input
+                value={form.skills}
+                onChange={(e) => handleFormChange('skills', e.target.value)}
+                placeholder="e.g. React, Node.js, TypeScript"
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-ink mb-1">Deadline <span className="text-danger">*</span></label>
+              <input
+                required type="date"
+                value={form.deadline}
+                onChange={(e) => handleFormChange('deadline', e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full h-11 rounded-xl border border-line bg-surface px-4 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-ink mb-1">Description</label>
+              <textarea
+                rows={4}
+                value={form.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
           </div>
           <button type="submit" disabled={submitting}
-            className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60">
+            className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 w-full sm:w-auto">
             {submitting ? 'Saving…' : 'Save changes'}
           </button>
         </form>
@@ -288,7 +440,12 @@ export default function ClientTasks() {
         const tDate = new Date(t.createdAt);
         return tDate.getMonth() === date.getMonth();
       }) || [];
-      return monthTasks.reduce((sum, t) => sum + (t.budget || 0), 0);
+      return monthTasks.reduce((sum, t) => {
+        const budget = t.budget;
+        if (typeof budget === 'object' && budget.amount) return sum + Number(budget.amount);
+        if (typeof budget === 'number') return sum + budget;
+        return sum;
+      }, 0);
     });
 
     chartRef.current = new ChartJS(ctx, {
