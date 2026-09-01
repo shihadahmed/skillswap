@@ -85,7 +85,7 @@ export default function RegisterPage() {
   );
 
   return (
-    <div className="h-screen grid place-items-center px-4 py-10">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md bg-surface border border-line rounded-2xl shadow-soft p-8">
         <h1 className="text-2xl font-extrabold tracking-tight">Join SkillSwap</h1>
         <p className="text-muted mt-1 mb-6">Create your account in seconds.</p>

@@ -50,7 +50,7 @@ export default function ClientOnboardingPage() {
   };
 
   return (
-    <div className="h-screen bg-surface p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-md mx-auto bg-white rounded-2xl shadow-soft p-8">
         <h1 className="text-2xl font-extrabold tracking-tight mb-2">Client Onboarding</h1>
         <p className="text-muted mb-6">Complete your profile to unlock task posting</p>

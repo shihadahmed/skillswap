@@ -56,7 +56,7 @@ export default function FreelancerOnboardingPage() {
   };
 
   return (
-    <div className="h-screen bg-surface p-8">
+    <div className="min-h-screen bg-surface p-8">
       <div className="max-w-md mx-auto bg-white rounded-2xl shadow-soft p-8">
         <h1 className="text-2xl font-extrabold tracking-tight mb-2">Freelancer Onboarding</h1>
         <p className="text-muted mb-6">Complete your profile to unlock proposal submissions</p>
