@@ -5,13 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
+import { dashboardPath } from '@/components/ProtectedRoute';
 import { toast } from 'react-toastify';
-
-const redirectFor = (role) => {
-  if (role === 'admin') return '/dashboard/admin';
-  if (role === 'freelancer') return '/dashboard/freelancer';
-  return '/';
-};
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -28,7 +23,7 @@ export default function LoginPage() {
     try {
       const u = await login(email, password);
       toast.success('Logged in successfully!');
-      router.push(redirectFor(u.role));
+      router.push(dashboardPath(u.role));
     } catch (err) {
       const msg = (err.message || '').toLowerCase();
       if (msg.includes('blocked')) {

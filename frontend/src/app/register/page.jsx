@@ -5,32 +5,23 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "@/lib/api";
+import { dashboardPath } from "@/components/ProtectedRoute";
 import { toast } from "react-toastify";
-
-const redirectFor = (role) => {
-  if (role === "admin") return "/dashboard/admin";
-  if (role === "freelancer") return "/dashboard/freelancer";
-  return "/";
-};
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
+  const [role, setRole] = useState('client'); // 'client' = Hire Talent, 'freelancer' = Work & Earn
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     image: "",
-    role: "client", // default client
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const update = (key) => (e) => setForm({ ...form, [key]: e.target.value });
-
-  const setRole = (selectedRole) => {
-    setForm((prev) => ({ ...prev, role: selectedRole }));
-  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -43,9 +34,9 @@ export default function RegisterPage() {
     }
     setBusy(true);
     try {
-      const u = await register(form);
+      const u = await register({ ...form, role });
       toast.success("Account created successfully! Welcome to SkillSwap.");
-      router.push(redirectFor(u.role));
+      router.push(dashboardPath(u.role));
     } catch (err) {
       const msg = err.message || "";
       if (/already/.test(msg)) {
@@ -66,7 +57,7 @@ export default function RegisterPage() {
         </h1>
         {/* Dynamic Subtitle based on selected role */}
         <p className="text-muted mt-1 mb-6">
-          Create your {form.role === "client" ? "client" : "freelancer"} account in seconds.
+          Create your {role === "client" ? "client" : "freelancer"} account in seconds.
         </p>
 
         {error && (
@@ -86,7 +77,7 @@ export default function RegisterPage() {
             type="button"
             onClick={() => setRole("client")}
             className={`flex-1 text-center rounded-xl p-4 font-semibold transition-all ${
-              form.role === "client"
+              role === "client"
                 ? "bg-brand text-white shadow-sm"
                 : "bg-slate-100 hover:bg-slate-200 text-slate-800"
             }`}
@@ -94,7 +85,7 @@ export default function RegisterPage() {
             <div>Hire Talent</div>
             <div
               className={`text-xs font-normal mt-1 ${
-                form.role === "client" ? "text-white/80" : "text-slate-500"
+                role === "client" ? "text-white/80" : "text-slate-500"
               }`}
             >
               Post tasks & get them done
@@ -105,7 +96,7 @@ export default function RegisterPage() {
             type="button"
             onClick={() => setRole("freelancer")}
             className={`flex-1 text-center rounded-xl p-4 font-semibold transition-all ${
-              form.role === "freelancer"
+              role === "freelancer"
                 ? "bg-brand text-white shadow-sm"
                 : "bg-slate-100 hover:bg-slate-200 text-slate-800"
             }`}
@@ -113,7 +104,7 @@ export default function RegisterPage() {
             <div>Work & Earn</div>
             <div
               className={`text-xs font-normal mt-1 ${
-                form.role === "freelancer" ? "text-white/80" : "text-slate-500"
+                role === "freelancer" ? "text-white/80" : "text-slate-500"
               }`}
             >
               Apply to tasks & deliver
@@ -123,7 +114,7 @@ export default function RegisterPage() {
 
         {/* Google Signup Button with Selected Role */}
         <a
-          href={`${API_URL}/auth/google?role=${form.role}`}
+          href={`${API_URL}/auth/google?role=${role}`}
           className="flex items-center justify-center gap-3 w-full border border-line rounded-xl py-3 font-semibold hover:bg-slate-50 transition-colors mb-5"
         >
           <svg width="18" height="18" viewBox="0 0 48 48">

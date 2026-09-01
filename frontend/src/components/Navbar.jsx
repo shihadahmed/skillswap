@@ -15,7 +15,7 @@ export default function Navbar() {
   const handleLogout = () => {
     logout();
     setOpen(false);
-    router.push('/');
+    router.replace('/');
   };
 
   const linkCls =
