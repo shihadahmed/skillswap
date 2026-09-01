@@ -212,6 +212,23 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // POST /api/tasks — create (client, or admin posting on behalf of a client)
 router.post('/', auth, requireRole('client', 'admin'), async (req, res) => {
   try {
+    // Check if client is approved and has complete profile (unless admin)
+    const isAdmin = req.user.role === 'admin';
+    if (!isAdmin) {
+      const user = await User.findById(req.user._id);
+      if (!user || !user.isApproved) {
+        return res.status(403).json({ message: 'Account not approved. Awaiting admin approval.' });
+      }
+      if (!user.isProfileComplete) {
+        return res.status(403).json({ message: 'Profile incomplete. Complete onboarding first.' });
+      }
+      // Verify user exists in clients collection
+      const client = await Client.findOne({ user_email: req.user.email });
+      if (!client || !client.isApproved) {
+        return res.status(403).json({ message: 'Client profile not approved.' });
+      }
+    }
+
     const {
       title,
       category,
@@ -259,6 +276,17 @@ router.post('/', auth, requireRole('client', 'admin'), async (req, res) => {
       client_email,
       status: 'pending', // Requires admin approval
     });
+
+    // Dynamic System Synchronization: Increment client stats
+    if (!isAdmin) {
+      await Client.findOneAndUpdate(
+        { user_email: client_email },
+        {
+          $inc: { jobs_posted: 1, active_jobs: 1 },
+        }
+      );
+    }
+
     res.status(201).json({ task });
   } catch (err) {
     console.error('\n❌ [POST /tasks ERROR]', err);
@@ -335,6 +363,20 @@ router.post('/:id/proposals', auth, requireRole('freelancer'), async (req, res) 
     if (!task) return res.status(404).json({ message: 'Task not found' });
     if (task.status !== 'open')
       return res.status(400).json({ message: 'This task is no longer accepting proposals' });
+
+    // Check if freelancer is approved and has complete profile
+    const user = await User.findById(req.user._id);
+    if (!user || !user.isApproved) {
+      return res.status(403).json({ message: 'Account not approved. Awaiting admin approval.' });
+    }
+    if (!user.isProfileComplete) {
+      return res.status(403).json({ message: 'Profile incomplete. Complete onboarding first.' });
+    }
+    // Verify user exists in freelancers collection
+    const freelancer = await Freelancer.findOne({ user_email: req.user.email });
+    if (!freelancer || !freelancer.isApproved) {
+      return res.status(403).json({ message: 'Freelancer profile not approved.' });
+    }
 
     const { proposed_budget, estimated_days, cover_note, milestones } = req.body;
     if (proposed_budget == null || estimated_days == null)

@@ -49,7 +49,29 @@ router.post('/checkout', auth, requireRole('client'), async (req, res) => {
       paid_at: new Date(),
     });
 
+    // Dynamic System Synchronization
+    // 1. Update task status to completed
     await Task.findByIdAndUpdate(task._id, { status: 'completed' });
+
+    // 2. Update client stats: add to total_spent, decrement active_jobs
+    await Client.findOneAndUpdate(
+      { user_email: req.user.email },
+      {
+        $inc: { total_spent: fees.totalPaidByClient, $dec: { active_jobs: 1 } },
+      }
+    );
+
+    // 3. Update freelancer stats: add to total_earned, increment completed jobs
+    await Freelancer.findOneAndUpdate(
+      { user_email: accepted.freelancer_email },
+      {
+        $inc: { total_earned: fees.freelancerNetPayout, $inc: { total_completed_jobs: 1 } },
+      }
+    );
+
+    // 4. Recalculate client rating if there are reviews
+    // (Rating recalculation happens on review submission)
+
     res.status(201).json(payment);
   } catch (err) {
     console.error('\n❌ [POST /payments/checkout ERROR]', err);

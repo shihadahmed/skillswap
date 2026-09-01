@@ -60,6 +60,9 @@ router.post('/register', async (req, res) => {
       password: await bcrypt.hash(password, 10),
       image: image || '',
       role: safeRole,
+      isProfileComplete: false,
+      isApproved: false,
+      approvalStatus: 'pending',
     });
 
     // When someone registers as a freelancer, also create their profile in the
@@ -68,6 +71,7 @@ router.post('/register', async (req, res) => {
       try {
         await Freelancer.create({
           id: 'fl_' + Math.random().toString(36).slice(2, 8),
+          user_email: email,
           name: user.name,
           avatar: user.image || '',
           skills: user.skills || [],
@@ -79,7 +83,7 @@ router.post('/register', async (req, res) => {
     }
 
     const token = setAuthCookie(res, user._id);
-    res.status(201).json({ token, user: publicUser(user) });
+    res.status(201).json({ token, user: publicUser(user), isNewUser: true, role: safeRole });
   } catch (err) {
     console.error('\n❌ [REGISTER ERROR]', err);
     res.status(500).json({ message: err.message });
@@ -171,20 +175,33 @@ router.get('/google/callback', async (req, res) => {
     const profile = await profileRes.json();
 
     let user = await User.findOne({ email: profile.email.toLowerCase() });
+    const requestedRole = req.query.role;
     if (!user) {
+      const safeRole = requestedRole === 'freelancer' || requestedRole === 'client'
+        ? requestedRole
+        : 'client';
       user = await User.create({
         name: profile.name || profile.email.split('@')[0],
         email: profile.email,
         password: await bcrypt.hash(Math.random().toString(36), 10),
         image: profile.picture || '',
-        role: 'client', // Google sign-in is always a client
+        role: safeRole,
+        isProfileComplete: false,
+        isApproved: false,
+        approvalStatus: 'pending',
       });
     }
 
-    // Google users are always clients; do not downgrade/upgrade existing roles.
     const token = setAuthCookie(res, user._id);
     const frontend = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
-    return res.redirect(`${frontend}/dashboard/client`);
+
+    if (user.isApproved && user.isProfileComplete) {
+      const dashboardPath = `dashboard/${user.role}`;
+      return res.redirect(`${frontend}/${dashboardPath}`);
+    }
+
+    const onboardingPath = `/onboarding/${user.role}`;
+    return res.redirect(`${frontend}${onboardingPath}`);
   } catch (err) {
     console.error('\n❌ [GOOGLE CALLBACK ERROR]', err);
     return res.status(500).send('Google authentication error');

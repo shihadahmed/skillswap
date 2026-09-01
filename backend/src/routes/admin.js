@@ -364,6 +364,143 @@ router.delete('/reviews/:id', admin, async (req, res) => {
   }
 });
 
+router.get('/approvals', admin, async (req, res) => {
+  try {
+    const { page = 1, limit = 9 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const [freelancers, clients] = await Promise.all([
+      User.find({ role: 'freelancer', approvalStatus: 'pending' }).select('-password'),
+      User.find({ role: 'client', approvalStatus: 'pending' }).select('-password'),
+    ]);
+    const freelancerCount = await User.countDocuments({ role: 'freelancer', approvalStatus: 'pending' });
+    const clientCount = await User.countDocuments({ role: 'client', approvalStatus: 'pending' });
+    res.json({
+      freelancers: freelancers.map((u) => ({
+        id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        approvalStatus: u.approvalStatus,
+        isApproved: u.isApproved,
+      })),
+      clients: clients.map((u) => ({
+        id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        approvalStatus: u.approvalStatus,
+        isApproved: u.isApproved,
+      })),
+      page: pageNum,
+      limit: limitNum,
+      totalFreelancers: freelancerCount,
+      totalClients: clientCount,
+    });
+  } catch (err) {
+    console.error('\n❌ [GET /admin/approvals ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put('/approvals/approve-user/:id', admin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    user.isApproved = true;
+    user.approvalStatus = 'approved';
+    await user.save();
+
+    // Sync to dedicated collection
+    if (user.role === 'freelancer') {
+      await Freelancer.findOneAndUpdate(
+        { user_email: user.email },
+        {
+          id: 'fl_' + Math.random().toString(36).slice(2, 8),
+          user_email: user.email,
+          name: user.name,
+          avatar: user.image || '',
+          skills: user.skills || [],
+          bio: user.bio || '',
+        },
+        { upsert: true }
+      );
+    } else if (user.role === 'client') {
+      await Client.findOneAndUpdate(
+        { user_email: user.email },
+        {
+          id: 'cl_' + Math.random().toString(36).slice(2, 8),
+          user_email: user.email,
+          name: user.name,
+          avatar: user.image || '',
+          location: { city: '', country: '' },
+          phone_number: '',
+          about: '',
+          industry: '',
+          company_size: '',
+        },
+        { upsert: true }
+      );
+    }
+
+    res.json({ user: publicUser(user), synced: true });
+  } catch (err) {
+    console.error('\n❌ [PUT /approvals/approve-user ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put('/approvals/reject-user/:id', admin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const { reason } = req.body;
+    user.isApproved = false;
+    user.approvalStatus = 'rejected';
+    await user.save();
+    res.json({ user: publicUser(user), rejected: true, reason });
+  } catch (err) {
+    console.error('\n❌ [PUT /approvals/reject-user ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put('/approvals/sync-user/:id', admin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.isApproved && user.isProfileComplete) {
+      // Already synced, just return success
+      return res.json({ user: publicUser(user), alreadySynced: true });
+    }
+    return res.json({ user: publicUser(user), needsOnboarding: true });
+  } catch (err) {
+    console.error('\n❌ [PUT /approvals/sync-user ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/approvals/stats', admin, async (req, res) => {
+  try {
+    const [totalPending, approvedFreelancers, approvedClients, rejectedCount] = await Promise.all([
+      User.countDocuments({ approvalStatus: 'pending' }),
+      User.countDocuments({ role: 'freelancer', approvalStatus: 'approved' }),
+      User.countDocuments({ role: 'client', approvalStatus: 'approved' }),
+      User.countDocuments({ approvalStatus: 'rejected' }),
+    ]);
+    res.json({
+      totalPending,
+      approvedFreelancers,
+      approvedClients,
+      rejectedCount,
+    });
+  } catch (err) {
+    console.error('\n❌ [GET /approvals/stats ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // GET /api/admin/transactions — list all payments (paginated)
 router.get('/transactions', admin, async (req, res) => {
   try {

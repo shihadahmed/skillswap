@@ -11,6 +11,13 @@ const userSchema = new mongoose.Schema(
       enum: ['client', 'freelancer', 'admin'],
       default: 'client',
     },
+    isProfileComplete: { type: Boolean, default: false },
+    isApproved: { type: Boolean, default: false },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
     skills: [{ type: String, trim: true }],
     bio: { type: String, default: '' },
     isBlocked: { type: Boolean, default: false },
