@@ -11,9 +11,10 @@ const taskRoutes = require('./routes/tasks');
 const proposalRoutes = require('./routes/proposals');
 const freelancerRoutes = require('./routes/freelancers');
 const adminRoutes = require('./routes/admin');
+const notificationRoutes = require('./routes/notifications');
 const paymentRoutes = require('./routes/payments');
 const reviewRoutes = require('./routes/reviews');
-const notificationRoutes = require('./routes/notifications');
+const onboardingRoutes = require('./routes/onboarding');
 const connectDB = require('./config/db');
 // Future phases will mount: payments, reviews
 
@@ -90,9 +91,10 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/proposals', proposalRoutes);
 app.use('/api/freelancers', freelancerRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/payments', paymentRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
