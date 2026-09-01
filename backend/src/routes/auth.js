@@ -129,18 +129,35 @@ router.get('/me', require('../middleware/auth'), async (req, res) => {
 
 // ---------------- Google OAuth (manual flow, keys from env) ----------------
 
+const ROLE_FROM_STATE = (raw) => {
+  if (!raw) return 'client';
+  try {
+    const decoded = Buffer.from(String(raw), 'base64').toString('utf8');
+    return decoded === 'freelancer' ? 'freelancer' : 'client';
+  } catch (e) {
+    return 'client';
+  }
+};
+
+const ROLE_TO_STATE = (role) =>
+  Buffer.from(role === 'freelancer' ? 'freelancer' : 'client', 'utf8').toString('base64');
+
 router.get('/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const redirectUri = process.env.GOOGLE_REDIRECT_URI;
   if (!clientId || !redirectUri)
     return res.status(400).json({ message: 'Google OAuth is not configured' });
 
+  const requestedRole = req.query.role === 'freelancer' ? 'freelancer' : 'client';
+  const state = ROLE_TO_STATE(requestedRole);
+
   const url =
     `https://accounts.google.com/o/oauth2/v2/auth?response_type=code` +
     `&client_id=${encodeURIComponent(clientId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&scope=${encodeURIComponent('openid email profile')}` +
-    `&prompt=select_account`;
+    `&prompt=select_account` +
+    `&state=${encodeURIComponent(state)}`;
   res.redirect(url);
 });
 
@@ -175,11 +192,9 @@ router.get('/google/callback', async (req, res) => {
     const profile = await profileRes.json();
 
     let user = await User.findOne({ email: profile.email.toLowerCase() });
-    const requestedRole = req.query.role;
+    const requestedRole = ROLE_FROM_STATE(req.query.state);
     if (!user) {
-      const safeRole = requestedRole === 'freelancer' || requestedRole === 'client'
-        ? requestedRole
-        : 'client';
+      const safeRole = requestedRole;
       user = await User.create({
         name: profile.name || profile.email.split('@')[0],
         email: profile.email,
