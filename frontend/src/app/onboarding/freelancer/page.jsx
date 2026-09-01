@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
 
 export default function FreelancerOnboardingPage() {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({
     full_name: user?.name || '',
@@ -31,7 +31,7 @@ export default function FreelancerOnboardingPage() {
     setError('');
     setSubmitting(true);
     try {
-      const { data } = await api.put('/api/onboarding/freelancer', {
+      await api.put('/api/onboarding/freelancer', {
         full_name: form.full_name,
         headline: form.headline,
         hourly_rate: form.hourly_rate,
@@ -56,55 +56,62 @@ export default function FreelancerOnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface p-8">
-      <div className="max-w-md mx-auto bg-white rounded-2xl shadow-soft p-8">
-        <h1 className="text-2xl font-extrabold tracking-tight mb-2">Freelancer Onboarding</h1>
-        <p className="text-muted mb-6">Complete your profile to unlock proposal submissions</p>
+    <div className="min-h-screen w-full bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto bg-white border border-line rounded-2xl shadow-soft p-6 sm:p-10">
+        <div className="border-b border-line pb-6 mb-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Freelancer Onboarding</h1>
+          <p className="text-muted mt-1 text-base">Complete your profile to unlock proposal submissions</p>
+        </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-4 mb-4">
+          <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm p-4 mb-6">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-muted mb-2">Full Name</label>
-            <input
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              required
-              className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-muted mb-2">Headline</label>
-            <input
-              value={form.headline}
-              onChange={(e) => setForm({ ...form, headline: e.target.value })}
-              required
-              className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">Hourly Rate (USD)</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
+              <input
+                value={form.full_name}
+                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                required
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Headline</label>
+              <input
+                value={form.headline}
+                onChange={(e) => setForm({ ...form, headline: e.target.value })}
+                required
+                placeholder="e.g. Senior Full Stack Developer"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Hourly Rate (USD)</label>
               <input
                 value={form.hourly_rate}
                 onChange={(e) => setForm({ ...form, hourly_rate: Number(e.target.value) })}
                 type="number"
                 min="1"
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                required
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">Experience Level</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Experience Level</label>
               <select
                 value={form.experience_level}
                 onChange={(e) => setForm({ ...form, experience_level: e.target.value })}
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               >
                 <option value="Beginner">Beginner</option>
                 <option value="Intermediate">Intermediate</option>
@@ -113,97 +120,111 @@ export default function FreelancerOnboardingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">City</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">City</label>
               <input
                 value={form.location?.city || ''}
                 onChange={(e) => setForm({ ...form, location: { ...form.location, city: e.target.value } })}
                 required
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">Country</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Country</label>
               <input
                 value={form.location?.country || ''}
                 onChange={(e) => setForm({ ...form, location: { ...form.location, country: e.target.value } })}
                 required
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
+              <input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                required
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">Phone Number</label>
-            <input
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              required
-              className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-muted mb-2">Bio</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Bio</label>
             <textarea
               value={form.bio}
               onChange={(e) => setForm({ ...form, bio: e.target.value })}
-              rows={3}
-              className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40 resize-none"
+              rows={4}
+              placeholder="Tell clients about your background, strengths, and expertise..."
+              className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 resize-none bg-white"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">Skills</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Skills</label>
               <input
                 value={form.skills.join(', ')}
-                onChange={(e) => setForm({ ...form, skills: e.target.value.split(',').s.map(s => s.trim()).filter(s => s) })}
-                placeholder="e.g., React, Node.js, Design"
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    skills: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                  })
+                }
+                placeholder="e.g. React, Node.js, Next.js"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               />
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">Categories</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Categories</label>
               <input
                 value={form.categories.join(', ')}
-                onChange={(e) => setForm({ ...form, categories: e.target.value.split(',').s.map(s => s.trim()).filter(s => s) })}
-                placeholder="e.g., Web Development, Writing"
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    categories: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                  })
+                }
+                placeholder="e.g. Web Development, UI/UX Design"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted mb-2">Profile Image URL</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Profile Image URL</label>
             <input
               value={form.avatar}
               onChange={(e) => setForm({ ...form, avatar: e.target.value })}
               placeholder="https://..."
-              className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+              className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">Availability Status</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Availability Status</label>
               <select
                 value={form.availability_status}
                 onChange={(e) => setForm({ ...form, availability_status: e.target.value })}
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               >
                 <option value="available">Available</option>
                 <option value="busy">Busy</option>
                 <option value="offline">Offline</option>
               </select>
             </div>
+
             <div>
-              <label className="block text-sm font-medium text-muted mb-2">Hours Per Week</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Hours Per Week</label>
               <select
                 value={form.availability_hours}
                 onChange={(e) => setForm({ ...form, availability_hours: e.target.value })}
-                className="w-full rounded-xl border border-line px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
               >
                 <option value="10+ hrs/week">10+ hrs/week</option>
                 <option value="20+ hrs/week">20+ hrs/week</option>
@@ -213,19 +234,16 @@ export default function FreelancerOnboardingPage() {
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full bg-brand hover:bg-brand-hover text-white font-semibold py-3 rounded-xl shadow-soft transition-colors disabled:opacity-60"
-          >
-            {submitting ? 'Submitting…' : 'Submit Profile'}
-          </button>
+          <div className="pt-4 border-t border-line">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 px-6 bg-brand hover:bg-brand-hover text-white font-semibold rounded-xl shadow-soft transition-colors disabled:opacity-60 text-base"
+            >
+              {submitting ? 'Submitting…' : 'Submit Profile for Verification'}
+            </button>
+          </div>
         </form>
-
-        <div className="mt-6 text-center text-sm text-muted">
-          Already have a profile?{' '}
-          <a href="/login" className="text-brand hover:underline">Go to login</a>
-        </div>
       </div>
     </div>
   );
