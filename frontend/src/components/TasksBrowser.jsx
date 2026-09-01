@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTasks } from '@/lib/hooks';
 import TaskCard from './TaskCard';
 import SearchBar from './SearchBar';
@@ -9,6 +9,11 @@ import EmptyState from './EmptyState';
 import Pagination from './Pagination';
 
 const CATEGORIES = [
+  'Design',
+  'Writing',
+  'Development',
+  'Marketing',
+  'Other',
   'UI/UX Design',
   'Frontend Development',
   'Backend Development',
@@ -43,6 +48,26 @@ export default function TasksBrowser({ initial } = {}) {
   const [applied, setApplied] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
+
+  // Seed the filter from ?category=... when arriving from the homepage so
+  // category cards there actually apply their filter instead of silently
+  // showing the unfiltered list.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('category') || '';
+    const initialCat = initial?.category || '';
+    if (fromUrl) setCategory(fromUrl);
+    else if (initialCat) setCategory(initialCat);
+    const fromUrlSearch = params.get('search') || '';
+    const initialSearch = initial?.search || '';
+    if (fromUrlSearch) setApplied(fromUrlSearch);
+    else if (initialSearch) setApplied(initialSearch);
+    const fromUrlPage = parseInt(params.get('page') || '', 10);
+    if (Number.isFinite(fromUrlPage) && fromUrlPage > 0) setPage(fromUrlPage);
+    else if (initial?.page) setPage(initial.page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Default browse view rotates (shuffle); filtered views are stable & cached.
   const { data, isLoading, isValidating } = useTasks({
