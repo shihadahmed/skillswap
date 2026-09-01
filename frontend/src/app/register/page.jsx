@@ -13,21 +13,6 @@ const redirectFor = (role) => {
   return '/';
 };
 
-const roleCard = (value, title, desc) => (
-    <button
-      type="button"
-      onClick={() => setForm({ ...form, role: value })}
-      className={`flex-1 text-left rounded-xl border p-4 transition-colors ${
-        form.role === value
-          ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
-          : 'border-line hover:border-brand/40'
-      }`}
-    >
-      <div className="font-semibold">{title}</div>
-      <div className="text-xs text-muted mt-1">{desc}</div>
-    </button>
-  );
-
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
@@ -68,21 +53,6 @@ export default function RegisterPage() {
       setBusy(false);
     }
   };
-
-  const roleCard = (value, title, desc) => (
-    <button
-      type="button"
-      onClick={() => setForm({ ...form, role: value })}
-      className={`flex-1 text-left rounded-xl border p-4 transition-colors ${
-        form.role === value
-          ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
-          : 'border-line hover:border-brand/40'
-      }`}
-    >
-      <div className="font-semibold">{title}</div>
-      <div className="text-xs text-muted mt-1">{desc}</div>
-    </button>
-  );
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
@@ -156,8 +126,20 @@ export default function RegisterPage() {
 
           <label className="block text-sm font-medium text-muted mt-4">I want to</label>
           <div className="flex gap-3 mt-2">
-            {roleCard('client', 'Hire talent', 'Post tasks & get them done')}
-            {roleCard('freelancer', 'Work & earn', 'Apply to tasks & deliver')}
+            <Link
+              href="/client-signup"
+              className="flex-1 text-center rounded-xl border border-brand bg-brand/5 ring-2 ring-brand/30 p-4 font-semibold text-brand hover:bg-brand/10 transition-colors"
+            >
+              <div>Hire Talent</div>
+              <div className="text-xs text-muted mt-1">Post tasks & get them done</div>
+            </Link>
+            <Link
+              href="/freelancer-signup"
+              className="flex-1 text-center rounded-xl border border-brand bg-brand/5 ring-2 ring-brand/30 p-4 font-semibold text-brand hover:bg-brand/10 transition-colors"
+            >
+              <div>Work & Earn</div>
+              <div className="text-xs text-muted mt-1">Apply to tasks & deliver</div>
+            </Link>
           </div>
 
           <button
