@@ -7,28 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
 import { toast } from 'react-toastify';
 
-const redirectFor = (role) => {
-  if (role === 'admin') return '/dashboard/admin';
-  if (role === 'freelancer') return '/dashboard/freelancer';
-  return '/';
-};
-
-const roleCard = (value, title, desc) => (
-    <button
-      type="button"
-      onClick={() => setForm({ ...form, role: value })}
-      className={`flex-1 text-left rounded-xl border p-4 transition-colors ${
-        form.role === value
-          ? 'border-brand bg-brand/5 ring-2 ring-brand/30'
-          : 'border-line hover:border-brand/40'
-      }`}
-    >
-      <div className="font-semibold">{title}</div>
-      <div className="text-xs text-muted mt-1">{desc}</div>
-    </button>
-  );
-
-export default function RegisterPage() {
+export default function FreelancerSignupPage() {
   const { register } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({
@@ -36,12 +15,10 @@ export default function RegisterPage() {
     email: '',
     password: '',
     image: '',
-    role: 'client',
+    role: 'freelancer',
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-
-  const update = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   const submit = async (e) => {
     e.preventDefault();
@@ -56,7 +33,7 @@ export default function RegisterPage() {
     try {
       const u = await register(form);
       toast.success('Account created successfully! Welcome to SkillSwap.');
-      router.push(redirectFor(u.role));
+      router.push('/dashboard/freelancer');
     } catch (err) {
       const msg = err.message || '';
       if (/already/.test(msg)) {
@@ -87,8 +64,8 @@ export default function RegisterPage() {
   return (
     <div className="h-screen grid place-items-center px-4 py-10">
       <div className="w-full max-w-md bg-surface border border-line rounded-2xl shadow-soft p-8">
-        <h1 className="text-2xl font-extrabold tracking-tight">Join SkillSwap</h1>
-        <p className="text-muted mt-1 mb-6">Create your account in seconds.</p>
+        <h1 className="text-2xl font-extrabold tracking-tight">Join SkillSwap as Freelancer</h1>
+        <p className="text-muted mt-1 mb-6">Create your account to apply to tasks and deliver work.</p>
 
         {error && (
           <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-4">
@@ -119,7 +96,7 @@ export default function RegisterPage() {
           <label className="block text-sm font-medium text-muted">Full name</label>
           <input
             value={form.name}
-            onChange={update('name')}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
             className="w-full rounded-xl border border-line px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
@@ -128,7 +105,7 @@ export default function RegisterPage() {
           <input
             type="email"
             value={form.email}
-            onChange={update('email')}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
             className="w-full rounded-xl border border-line px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
@@ -139,16 +116,18 @@ export default function RegisterPage() {
           <input
             type="url"
             value={form.image}
-            onChange={update('image')}
+            onChange={(e) => setForm({ ...form, image: e.target.value })}
             placeholder="https://…"
             className="w-full rounded-xl border border-line px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40"
           />
 
-          <label className="block text-sm font-medium text-muted mt-3">Password</label>
+          <label className="block text-sm font-medium text-muted mt-3">
+            Password
+          </label>
           <input
             type="password"
             value={form.password}
-            onChange={update('password')}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
             minLength={6}
             required
             className="w-full rounded-xl border border-line px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40"

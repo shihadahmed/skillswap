@@ -20,7 +20,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={jakarta.variable}>
-      <body className="font-sans bg-bg text-ink min-h-screen flex flex-col">
+      <body className="font-sans bg-bg text-ink h-screen flex flex-col">
         <AuthProvider>
           <Providers>
             <ConditionalChrome>{children}</ConditionalChrome>
