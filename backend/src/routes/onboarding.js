@@ -4,6 +4,7 @@ const { requireRole } = auth;
 const User = require('../models/User');
 const Freelancer = require('../models/Freelancer');
 const Client = require('../models/Client');
+const Task = require('../models/Task');
 
 const publicUser = (u) => ({
   id: u._id,
@@ -11,6 +12,39 @@ const publicUser = (u) => ({
   email: u.email,
   image: u.image,
   role: u.role,
+});
+
+router.get('/metadata', async (req, res) => {
+  try {
+    const [taskCategories, freelancerCategories, taskSkills, freelancerSkills] =
+      await Promise.all([
+        Task.distinct('category'),
+        Freelancer.distinct('categories'),
+        Task.distinct('skills'),
+        Freelancer.distinct('skills'),
+      ]);
+
+    const uniqueCategories = Array.from(
+      new Set(
+        [...taskCategories, ...freelancerCategories]
+          .map((s) => (s || '').trim())
+          .filter(Boolean)
+      )
+    ).sort();
+
+    const uniqueSkills = Array.from(
+      new Set(
+        [...taskSkills, ...freelancerSkills]
+          .map((s) => (s || '').trim())
+          .filter(Boolean)
+      )
+    ).sort();
+
+    res.json({ categories: uniqueCategories, skills: uniqueSkills });
+  } catch (err) {
+    console.error('\n❌ [GET /onboarding/metadata ERROR]', err);
+    res.status(500).json({ message: 'Failed to load metadata' });
+  }
 });
 
 router.get('/client', auth, async (req, res) => {
@@ -68,13 +102,19 @@ router.post('/client', auth, async (req, res) => {
   }
 });
 
-router.post('/freelancer', auth, async (req, res) => {
+router.post('/freelancer', auth, freelancerOnboardingHandler);
+router.put('/freelancer', auth, freelancerOnboardingHandler);
+
+async function freelancerOnboardingHandler(req, res) {
   try {
+    // TODO: remove after onboarding is stable
+    console.log('\n🟢 [Onboarding Payload]', JSON.stringify(req.body, null, 2));
+
     const { full_name, headline, hourly_rate, location, phone, experience_level, bio, skills, categories, avatar, availability_status, availability_hours } = req.body;
     const user = req.user;
 
-    if (!full_name || !hourly_rate || !location || !phone || !experience_level) {
-      return res.status(400).json({ message: 'Required fields are missing' });
+    if (!full_name || !hourly_rate || !location || !experience_level) {
+      return res.status(400).json({ message: 'Required fields are missing: full_name, hourly_rate, location, experience_level' });
     }
 
     user.isProfileComplete = true;
@@ -101,6 +141,6 @@ router.post('/freelancer', auth, async (req, res) => {
     console.error('\n❌ [POST /onboarding/freelancer ERROR]', err);
     res.status(500).json({ message: err.message });
   }
-});
+}
 
 module.exports = router;
