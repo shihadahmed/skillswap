@@ -8,6 +8,8 @@ const Proposal = require('../models/Proposal');
 const Payment = require('../models/Payment');
 const Review = require('../models/Review');
 const Notification = require('../models/Notification');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
+const { isStripeLive, getStripeClient } = require('../config/stripe');
 
 const admin = [auth, requireRole('admin')];
 
@@ -504,13 +506,22 @@ router.get('/approvals/stats', admin, async (req, res) => {
 // GET /api/admin/transactions — list all payments (paginated)
 router.get('/transactions', admin, async (req, res) => {
   try {
-    const { page = 1, limit = 9 } = req.query;
+    const { page = 1, limit = 9, type, status } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
     const skip = (pageNum - 1) * limitNum;
+    const filter = {};
+    if (type) filter.payment_type = type;
+    if (status) filter.payment_status = status;
     const [transactions, total] = await Promise.all([
-      Payment.find().select('client_email freelancer_email task_id amount payment_status paid_at createdAt').sort({ createdAt: -1 }).skip(skip).limit(limitNum),
-      Payment.countDocuments(),
+      Payment.find(filter)
+        .select(
+          'client_email freelancer_email task_id amount payment_status payment_type paid_at released_at refunded_at base_bid_amount client_service_fee vat_amount gateway_fee total_paid_by_client freelancer_net_payout platform_net_profit createdAt'
+        )
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      Payment.countDocuments(filter),
     ]);
     res.json({
       transactions,
@@ -521,6 +532,128 @@ router.get('/transactions', admin, async (req, res) => {
     });
   } catch (err) {
     console.error('\n❌ [GET /admin/transactions ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ============================================================================
+// Withdrawal administration
+// ============================================================================
+
+// GET /api/admin/withdrawals — list all withdrawal requests (paginated)
+router.get('/withdrawals', admin, async (req, res) => {
+  try {
+    const { page = 1, limit = 9, status } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 9));
+    const skip = (pageNum - 1) * limitNum;
+    const filter = {};
+    if (status) filter.status = status;
+    const [withdrawals, total] = await Promise.all([
+      WithdrawalRequest.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      WithdrawalRequest.countDocuments(filter),
+    ]);
+    res.json({
+      withdrawals,
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (err) {
+    console.error('\n❌ [GET /admin/withdrawals ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/admin/withdrawals/:id/approve — approve a pending request
+router.put('/withdrawals/:id/approve', admin, async (req, res) => {
+  try {
+    const wr = await WithdrawalRequest.findById(req.params.id);
+    if (!wr) return res.status(404).json({ message: 'Withdrawal not found' });
+    if (wr.status !== 'pending')
+      return res
+        .status(400)
+        .json({ message: `Cannot approve a request in status '${wr.status}'` });
+    wr.status = 'approved';
+    wr.processed_by = req.user.email;
+    wr.processed_at = new Date();
+    await wr.save();
+    res.json({ withdrawal: wr });
+  } catch (err) {
+    console.error('\n❌ [PUT /admin/withdrawals/:id/approve ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/admin/withdrawals/:id/pay — mark as paid, attempt Stripe transfer
+router.put('/withdrawals/:id/pay', admin, async (req, res) => {
+  try {
+    const wr = await WithdrawalRequest.findById(req.params.id);
+    if (!wr) return res.status(404).json({ message: 'Withdrawal not found' });
+    if (wr.status !== 'approved' && wr.status !== 'pending')
+      return res
+        .status(400)
+        .json({ message: `Cannot pay out a request in status '${wr.status}'` });
+
+    if (isStripeLive()) {
+      try {
+        const stripe = getStripeClient();
+        // Without Connect we record the intent and let the platform
+        // account keep the funds until a manual payout is initiated.
+        wr.stripe_transfer_id = 'pending_manual_transfer_' + Date.now();
+      } catch (err) {
+        console.error(
+          '\n❌ [Stripe transfer intent ERROR]',
+          err.message || err
+        );
+        return res
+          .status(502)
+          .json({ message: `Stripe transfer failed: ${err.message}` });
+      }
+    }
+
+    wr.status = 'paid';
+    wr.processed_by = req.user.email;
+    wr.processed_at = new Date();
+    if (!wr.processed_by) wr.processed_by = req.user.email;
+    await wr.save();
+    res.json({ withdrawal: wr });
+  } catch (err) {
+    console.error('\n❌ [PUT /admin/withdrawals/:id/pay ERROR]', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// PUT /api/admin/withdrawals/:id/reject — reject and refund the reserved balance
+router.put('/withdrawals/:id/reject', admin, async (req, res) => {
+  try {
+    const { note } = req.body;
+    const wr = await WithdrawalRequest.findById(req.params.id);
+    if (!wr) return res.status(404).json({ message: 'Withdrawal not found' });
+    if (wr.status === 'paid')
+      return res
+        .status(400)
+        .json({ message: 'Cannot reject a paid withdrawal' });
+    if (wr.status === 'rejected')
+      return res.json({ withdrawal: wr, alreadyRejected: true });
+
+    // Refund the reserved balance.
+    await User.findOneAndUpdate(
+      { email: wr.freelancer_email },
+      { $inc: { available_balance: wr.amount } }
+    );
+    wr.status = 'rejected';
+    wr.processed_by = req.user.email;
+    wr.processed_at = new Date();
+    wr.note = note || '';
+    await wr.save();
+    res.json({ withdrawal: wr });
+  } catch (err) {
+    console.error('\n❌ [PUT /admin/withdrawals/:id/reject ERROR]', err);
     res.status(500).json({ message: err.message });
   }
 });
