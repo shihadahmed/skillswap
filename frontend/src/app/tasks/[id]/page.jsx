@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { API_URL } from '@/lib/api';
@@ -350,11 +351,13 @@ export default async function TaskDetailPage({ params }) {
         </div>
 
         <div className="mt-6">
-          <TaskCheckout
-            taskId={task._id}
-            clientEmail={task.client_email}
-            status={task.status}
-          />
+          <Suspense fallback={null}>
+            <TaskCheckout
+              taskId={task._id}
+              clientEmail={task.client_email}
+              status={task.status}
+            />
+          </Suspense>
         </div>
       </div>
     </div>
