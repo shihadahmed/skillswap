@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     rating: { type: Number, default: 0, min: 0, max: 5 },
     jobsCompleted: { type: Number, default: 0 },
     hourlyRate: { type: Number, default: 0, min: 0 },
+    available_balance: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );
