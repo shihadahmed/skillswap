@@ -16,7 +16,6 @@ const paymentRoutes = require('./routes/payments');
 const reviewRoutes = require('./routes/reviews');
 const onboardingRoutes = require('./routes/onboarding');
 const connectDB = require('./config/db');
-// Future phases will mount: payments, reviews
 
 const app = express();
 
@@ -30,6 +29,7 @@ app.use(
   })
 );
 app.use(cookieParser());
+
 app.use(express.json());
 
 // Request logger — shows every call in the terminal / Vercel logs
@@ -94,7 +94,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);
