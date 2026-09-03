@@ -677,14 +677,16 @@ router.post(
       }
 
       // Credit only the requested deposit amount (not the total charged with
-      // fees). `base_bid_amount` stores the deposit for top-up rows.
-      const credit = payment.base_bid_amount || 0;
+      // fees). Fall back to `amount` (legacy field) if `base_bid_amount` is
+      // missing so the credit is never zeroed by an old/malformed row.
+      const credit = payment.base_bid_amount || payment.amount || 0;
       payment.payment_status = 'wallet_topup_confirmed';
       payment.paid_at = payment.paid_at || new Date();
       payment.credited_to_balance = credit;
       payment.transaction_id = transactionId || payment.stripe_session_id;
       await payment.save();
 
+      // Atomic balance increment + verification flag flip on the user.
       const updated = await User.findOneAndUpdate(
         { email: payment.client_email },
         {
@@ -692,7 +694,13 @@ router.post(
           $set: { payment_verified: true, payment_verified_at: new Date() },
         },
         { new: true }
-      ).select('available_balance payment_verified');
+      ).select('available_balance payment_verified payment_verified_at');
+
+      console.log(
+        `\n💰 [wallet-topup] Credited $${credit} to ${payment.client_email} — ` +
+          `new available_balance = $${updated?.available_balance ?? '?'}, ` +
+          `payment_verified = ${!!updated?.payment_verified}`
+      );
 
       res.json({
         success: true,
