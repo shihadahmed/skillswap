@@ -13,6 +13,8 @@ const navByRole = {
     { href: '/dashboard/client/my-tasks', label: 'My Tasks' },
     { href: '/tasks/create', label: 'Post a Task' },
     { href: '/freelancers', label: 'Browse Freelancers' },
+    { href: '/dashboard/profile', label: 'My Profile', icon: 'user' },
+    { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
     { href: '/notifications', label: 'Notifications' },
   ],
   freelancer: [
@@ -20,7 +22,8 @@ const navByRole = {
     { href: '/tasks', label: 'Browse Tasks' },
     { href: '/dashboard/freelancer/my-proposals', label: 'My Proposals' },
     { href: '/dashboard/freelancer/wallet', label: 'Wallet' },
-    { href: '/profile', label: 'Profile Settings' },
+    { href: '/dashboard/profile', label: 'My Profile', icon: 'user' },
+    { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
     { href: '/notifications', label: 'Notifications' },
   ],
   admin: [
@@ -31,9 +34,55 @@ const navByRole = {
     { href: '/dashboard/admin/transactions', label: 'Transactions' },
     { href: '/dashboard/admin/withdrawals', label: 'Withdrawals' },
     { href: '/dashboard/admin/reviews', label: 'Reviews' },
+    { href: '/dashboard/profile', label: 'My Profile', icon: 'user' },
+    { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
     { href: '/notifications', label: 'Notifications' },
   ],
 };
+
+function NavUserIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 4-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
+function NavSettingsIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+    </svg>
+  );
+}
+
+function iconFor(kind) {
+  if (kind === 'user') return <NavUserIcon />;
+  if (kind === 'settings') return <NavSettingsIcon />;
+  return null;
+}
 
 function MenuIcon() {
   return (
@@ -114,17 +163,19 @@ export default function DashboardSidebar({ children }) {
         <nav className="space-y-1 flex-1 min-h-0 overflow-y-auto">
           {nav.map((item) => {
             const active = isActiveRoute(pathname, item.href);
+            const icon = iconFor(item.icon);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
                   active
                     ? 'bg-brand/10 text-brand font-semibold'
                     : 'text-muted hover:text-ink hover:bg-slate-50'
                 }`}
               >
-                {item.label}
+                {icon}
+                <span>{item.label}</span>
               </Link>
             );
           })}
@@ -132,11 +183,24 @@ export default function DashboardSidebar({ children }) {
 
         <div className="mt-auto pt-4 border-t border-line flex items-center gap-3">
           <NotificationBell />
-          <img
-            src={avatar}
-            alt={user.name}
-            className="w-10 h-10 rounded-full object-cover border border-line"
-          />
+          <span className="relative inline-block">
+            <img
+              src={avatar}
+              alt={user.name}
+              className="w-10 h-10 rounded-full object-cover border border-line"
+            />
+            {(user?.isApproved === true || user?.approvalStatus === 'approved') && (
+              <span
+                aria-label="Verified"
+                title="Verified account"
+                className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center ring-2 ring-surface"
+              >
+                <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                  <path fillRule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 011.414-1.42L8.5 12.086l6.79-6.796a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </span>
+            )}
+          </span>
           <div className="min-w-0 flex-1">
             <div className="font-semibold truncate text-sm text-ink">
               {user.name}
@@ -177,17 +241,19 @@ export default function DashboardSidebar({ children }) {
         <nav className="flex gap-2 overflow-x-auto px-4 pb-3">
           {nav.map((item) => {
             const active = isActiveRoute(pathname, item.href);
+            const icon = iconFor(item.icon);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`whitespace-nowrap inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                   active
                     ? 'bg-brand/10 text-brand font-semibold'
                     : 'text-muted hover:text-ink bg-slate-50'
                 }`}
               >
-                {item.label}
+                {icon}
+                <span>{item.label}</span>
               </Link>
             );
           })}
