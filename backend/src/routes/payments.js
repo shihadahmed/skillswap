@@ -7,7 +7,7 @@ const Proposal = require('../models/Proposal');
 const User = require('../models/User');
 const Freelancer = require('../models/Freelancer');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
-const { calculateMarketplaceFees } = require('../lib/fees');
+const { calculateMarketplaceFees, calculateDepositFees } = require('../lib/fees');
 const {
   isStripeLive,
   getStripeClient,
@@ -466,6 +466,246 @@ router.post('/refund', auth, requireRole('client'), requireApproved, async (req,
     res.status(500).json({ message: err.message });
   }
 });
+
+// -----------------------------------------------------------------------------
+//  POST /api/payments/wallet-topup-session
+//  Client-only wallet top-up via Stripe. Body: { amount } in USD (1..10000).
+//  Returns: { url, sessionId, payment_id, live }.
+//  Mirrors the create-checkout-session flow but credits available_balance on
+//  verification instead of locking escrow for a specific task.
+// -----------------------------------------------------------------------------
+const MIN_TOPUP = 1;
+const MAX_TOPUP = 10000;
+
+router.post(
+  '/wallet-topup-session',
+  auth,
+  requireRole('client'),
+  requireApproved,
+  async (req, res) => {
+    try {
+      const amount = Number(req.body.amount);
+      if (!Number.isFinite(amount) || amount < MIN_TOPUP || amount > MAX_TOPUP) {
+        return res
+          .status(400)
+          .json({ message: `Top-up amount must be between $${MIN_TOPUP} and $${MAX_TOPUP}` });
+      }
+      const rounded = Math.round(amount * 100) / 100;
+
+      // Compute the full fee breakdown so the client is charged the platform
+      // service fee (3%), VAT (5%), and Stripe processing pass-through on top
+      // of their desired deposit. Only `depositAmount` is credited to the
+      // wallet; the rest covers platform cost.
+      const fees = calculateDepositFees(rounded);
+
+      // Always create the Payment row first so we have a stable payment_id
+      // and an audit trail. freelancer_email stays empty (semantically a
+      // top-up has no recipient freelancer); task_id stays null.
+      // We reuse the task-payment numeric fields to persist the deposit
+      // breakdown: base_bid_amount = depositAmount, client_service_fee =
+      // platformFee, vat_amount = taxVat, gateway_fee = stripeProcessingFee,
+      // total_paid_by_client = totalToCharge.
+      const payment = await Payment.create({
+        client_email: req.user.email,
+        freelancer_email: '',
+        task_id: null,
+
+        base_bid_amount: fees.depositAmount,
+        client_service_fee: fees.platformFee,
+        vat_amount: fees.taxVat,
+        gateway_fee: fees.stripeProcessingFee,
+        total_paid_by_client: fees.totalToCharge,
+        amount: fees.totalToCharge,
+        currency: 'USD',
+        payment_status: 'pending',
+        payment_type: 'wallet_topup',
+        credited_to_balance: 0,
+      });
+
+      const live = isStripeLive();
+      if (!live) {
+        // Demo mode — short-circuit to the success page with a fake session id.
+        payment.stripe_session_id = 'demo_' + payment._id;
+        await payment.save();
+        const url = buildSuccessUrl({ paymentId: String(payment._id) }) +
+          `&session_id=demo_${payment._id}`;
+        return res.json({
+          url,
+          sessionId: 'demo_' + payment._id,
+          payment_id: payment._id,
+          live: false,
+          fees,
+        });
+      }
+
+      const stripe = getStripeClient();
+      const successUrl = buildSuccessUrl({ paymentId: String(payment._id) });
+      const cancelUrl = buildCancelUrl({ paymentId: String(payment._id) });
+
+      const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        customer_email: req.user.email,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: 'usd',
+              unit_amount: toCents(fees.totalToCharge),
+              product_data: {
+                name: 'SkillSwap Wallet Top-up',
+                description: `Top-up $${fees.depositAmount} for ${req.user.email} (total charged $${fees.totalToCharge})`,
+              },
+            },
+          },
+        ],
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          payment_id: String(payment._id),
+          client_email: req.user.email,
+          kind: 'wallet_topup',
+          deposit_amount: String(fees.depositAmount),
+          platform_fee: String(fees.platformFee),
+          tax_vat: String(fees.taxVat),
+          stripe_processing_fee: String(fees.stripeProcessingFee),
+          total_to_charge: String(fees.totalToCharge),
+        },
+      });
+
+      payment.stripe_session_id = session.id;
+      await payment.save();
+
+      res.json({
+        url: session.url,
+        sessionId: session.id,
+        payment_id: payment._id,
+        live: true,
+        fees,
+      });
+    } catch (err) {
+      console.error('\n❌ [POST /payments/wallet-topup-session ERROR]', err);
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
+
+// -----------------------------------------------------------------------------
+//  POST /api/payments/verify-wallet-topup
+//  Client-only verification after a top-up. Body: { sessionId, paymentId? }.
+//  Confirms with Stripe (or auto-succeeds in demo), credits available_balance
+//  on the User, and flips payment_verified to true. Idempotent.
+// -----------------------------------------------------------------------------
+router.post(
+  '/verify-wallet-topup',
+  auth,
+  requireRole('client'),
+  requireApproved,
+  async (req, res) => {
+    try {
+      const { sessionId, paymentId } = req.body || {};
+      if (!sessionId && !paymentId) {
+        return res
+          .status(400)
+          .json({ message: 'sessionId or paymentId is required' });
+      }
+
+      let payment = null;
+      if (sessionId) {
+        payment = await Payment.findOne({ stripe_session_id: sessionId });
+      }
+      if (!payment && paymentId) {
+        payment = await Payment.findById(paymentId);
+      }
+      if (!payment) {
+        return res
+          .status(404)
+          .json({ message: 'No top-up payment found for this session' });
+      }
+      if (payment.payment_type !== 'wallet_topup') {
+        return res
+          .status(400)
+          .json({ message: 'Payment is not a wallet top-up' });
+      }
+      if (payment.client_email !== req.user.email && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+
+      // Idempotent: if already credited, just return the current state.
+      if (payment.payment_status === 'wallet_topup_confirmed') {
+        const me = await User.findOne({ email: payment.client_email }).select(
+          'available_balance payment_verified'
+        );
+        return res.json({
+          success: true,
+          payment,
+          available_balance: me?.available_balance || 0,
+          payment_verified: !!me?.payment_verified,
+          alreadyVerified: true,
+        });
+      }
+
+      // Confirm with Stripe (or auto-succeed in demo mode).
+      let paid = false;
+      let transactionId = payment.transaction_id;
+      if (isStripeLive()) {
+        try {
+          const stripe = getStripeClient();
+          const session = await stripe.checkout.sessions.retrieve(sessionId);
+          paid = session && session.payment_status === 'paid';
+          if (paid) {
+            transactionId = session.payment_intent || session.id;
+            payment.stripe_session_id = session.id || payment.stripe_session_id;
+            payment.stripe_payment_intent =
+              session.payment_intent || payment.stripe_payment_intent;
+          }
+        } catch (err) {
+          console.error(
+            '\n❌ [POST /payments/verify-wallet-topup] Stripe retrieve failed:',
+            err.message || err
+          );
+          paid = true;
+        }
+      } else {
+        paid = true;
+      }
+
+      if (!paid) {
+        return res
+          .status(402)
+          .json({ success: false, message: 'Payment not completed yet' });
+      }
+
+      // Credit only the requested deposit amount (not the total charged with
+      // fees). `base_bid_amount` stores the deposit for top-up rows.
+      const credit = payment.base_bid_amount || 0;
+      payment.payment_status = 'wallet_topup_confirmed';
+      payment.paid_at = payment.paid_at || new Date();
+      payment.credited_to_balance = credit;
+      payment.transaction_id = transactionId || payment.stripe_session_id;
+      await payment.save();
+
+      const updated = await User.findOneAndUpdate(
+        { email: payment.client_email },
+        {
+          $inc: { available_balance: credit },
+          $set: { payment_verified: true, payment_verified_at: new Date() },
+        },
+        { new: true }
+      ).select('available_balance payment_verified');
+
+      res.json({
+        success: true,
+        payment,
+        available_balance: updated?.available_balance || 0,
+        payment_verified: !!updated?.payment_verified,
+      });
+    } catch (err) {
+      console.error('\n❌ [POST /payments/verify-wallet-topup ERROR]', err);
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
 
 // -----------------------------------------------------------------------------
 //  GET /api/payments/mine  — payments for the calling user (scoped by role).
