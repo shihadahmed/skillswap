@@ -446,6 +446,13 @@ router.put('/approvals/approve-user/:id', admin, async (req, res) => {
       );
     }
 
+    await Notification.create({
+      user_email: user.email,
+      type: 'account_approved',
+      title: 'Account approved',
+      message: `Your ${user.role} account has been approved. You can now use the platform.`,
+    });
+
     res.json({ user: publicUser(user), synced: true });
   } catch (err) {
     console.error('\n❌ [PUT /approvals/approve-user ERROR]', err);
@@ -461,7 +468,16 @@ router.put('/approvals/reject-user/:id', admin, async (req, res) => {
     user.isApproved = false;
     user.approvalStatus = 'rejected';
     await user.save();
-    res.json({ user: publicUser(user), rejected: true, reason });
+
+    const cleanReason = (reason && String(reason).trim()) || 'No reason provided';
+    await Notification.create({
+      user_email: user.email,
+      type: 'account_rejected',
+      title: 'Account rejected',
+      message: `Your ${user.role} account was rejected. Reason: ${cleanReason}`,
+    });
+
+    res.json({ user: publicUser(user), rejected: true, reason: cleanReason });
   } catch (err) {
     console.error('\n❌ [PUT /approvals/reject-user ERROR]', err);
     res.status(500).json({ message: err.message });

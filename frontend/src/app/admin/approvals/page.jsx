@@ -15,18 +15,20 @@ export default function AdminApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [pendingFreelancerCount, setPendingFreelancerCount] = useState(0);
   const [pendingClientCount, setPendingClientCount] = useState(0);
+  const [statsPayload, setStatsPayload] = useState(null);
 
   const loadPending = async () => {
     setLoading(true);
     try {
-      const [ff, cc] = await Promise.all([
+      const [list, stats] = await Promise.all([
         api.get('/api/admin/approvals'),
         api.get('/api/admin/approvals/stats'),
       ]);
-      setFreelancers(ff.freelancers);
-      setClients(cc);
-      setPendingFreelancerCount(ff.totalFreelancerCount);
-      setPendingClientCount(ff.totalClientCount);
+      setFreelancers(list.freelancers || []);
+      setClients(list.clients || []);
+      setPendingFreelancerCount(list.totalFreelancers || 0);
+      setPendingClientCount(list.totalClients || 0);
+      setStatsPayload(stats);
     } catch (err) {
       toast.error(err.message || 'Failed to load pending reviews');
     } finally {
@@ -36,7 +38,7 @@ export default function AdminApprovalsPage() {
 
   const handleApprove = async (id, role) => {
     try {
-      const { data } = await api.put(`/api/admin/approvals/approve-user/${id}`);
+      await api.put(`/api/admin/approvals/approve-user/${id}`);
       toast.success(`${role} approved successfully!`);
       loadPending();
     } catch (err) {
@@ -44,10 +46,12 @@ export default function AdminApprovalsPage() {
     }
   };
 
-  const handleReject = async (id, role, reason) => {
+  const handleReject = async (id, role) => {
     if (!window.confirm(`Are you sure you want to reject this ${role}?`)) return;
+    const reason = window.prompt(`Reason for rejecting this ${role}:`, 'Incomplete profile or documentation');
+    if (reason === null) return;
     try {
-      const { data } = await api.put(`/api/admin/approvals/reject-user/${id}`, { reason });
+      await api.put(`/api/admin/approvals/reject-user/${id}`, { reason });
       toast.success(`${role} rejected successfully!`);
       loadPending();
     } catch (err) {
@@ -91,6 +95,27 @@ export default function AdminApprovalsPage() {
             </button>
           </div>
         </div>
+
+        {statsPayload && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div className="bg-white border border-line rounded-xl p-4">
+              <p className="text-xs text-muted">Total Pending</p>
+              <p className="text-2xl font-bold text-ink">{statsPayload.totalPending ?? 0}</p>
+            </div>
+            <div className="bg-white border border-line rounded-xl p-4">
+              <p className="text-xs text-muted">Approved Freelancers</p>
+              <p className="text-2xl font-bold text-emerald-600">{statsPayload.approvedFreelancers ?? 0}</p>
+            </div>
+            <div className="bg-white border border-line rounded-xl p-4">
+              <p className="text-xs text-muted">Approved Clients</p>
+              <p className="text-2xl font-bold text-emerald-600">{statsPayload.approvedClients ?? 0}</p>
+            </div>
+            <div className="bg-white border border-line rounded-xl p-4">
+              <p className="text-xs text-muted">Rejected</p>
+              <p className="text-2xl font-bold text-rose-600">{statsPayload.rejectedCount ?? 0}</p>
+            </div>
+          </div>
+        )}
 
         {tab === 'freelancers' && (
           <div>
@@ -138,7 +163,7 @@ export default function AdminApprovalsPage() {
                         Approve
                       </button>
                       <button
-                        onClick={() => handleReject(f.id, 'freelancer', 'Incomplete profile or documentation')}
+                        onClick={() => handleReject(f.id, 'freelancer')}
                         className="flex-1 bg-red-100 text-red-800 rounded-xl py-2 px-3 text-sm hover:bg-red-200 transition-colors"
                       >
                         Reject
@@ -197,7 +222,7 @@ export default function AdminApprovalsPage() {
                         Approve
                       </button>
                       <button
-                        onClick={() => handleReject(c.id, 'client', 'Incomplete profile or documentation')}
+                        onClick={() => handleReject(c.id, 'client')}
                         className="flex-1 bg-red-100 text-red-800 rounded-xl py-2 px-3 text-sm hover:bg-red-200 transition-colors"
                       >
                         Reject

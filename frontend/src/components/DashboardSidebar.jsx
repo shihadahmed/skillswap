@@ -25,6 +25,7 @@ const navByRole = {
   ],
   admin: [
     { href: '/dashboard/admin', label: 'Overview' },
+    { href: '/admin/approvals', label: 'Approvals' },
     { href: '/dashboard/admin/users', label: 'Manage Users' },
     { href: '/dashboard/admin/tasks', label: 'Manage Tasks' },
     { href: '/dashboard/admin/transactions', label: 'Transactions' },
@@ -59,17 +60,7 @@ function LogoutIcon() {
 }
 
 function isActiveRoute(pathname, href) {
-  if (pathname === href) return true;
-  if (href === '/dashboard/client') {
-    return pathname === '/dashboard/client' || pathname.startsWith('/dashboard/client/');
-  }
-  if (href === '/dashboard/freelancer') {
-    return pathname === '/dashboard/freelancer' || pathname.startsWith('/dashboard/freelancer/');
-  }
-  if (href === '/dashboard/admin') {
-    return pathname === '/dashboard/admin' || pathname.startsWith('/dashboard/admin/');
-  }
-  return false;
+  return pathname === href;
 }
 
 export default function DashboardSidebar({ children }) {

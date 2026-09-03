@@ -5,6 +5,26 @@ const User = require('../models/User');
 const Freelancer = require('../models/Freelancer');
 const Client = require('../models/Client');
 const Task = require('../models/Task');
+const Notification = require('../models/Notification');
+
+const notifyAdminsOfPendingProfile = async (role, user) => {
+  try {
+    const admins = await User.find({ role: 'admin' }).select('email');
+    if (!admins.length) return;
+    const title = `New ${role} profile submitted`;
+    const message = `${user.name} (${user.email}) is awaiting approval.`;
+    await Notification.insertMany(
+      admins.map((a) => ({
+        user_email: a.email,
+        type: 'account_approval',
+        title,
+        message,
+      }))
+    );
+  } catch (e) {
+    console.error('\n❌ [notifyAdminsOfPendingProfile ERROR]', e.message || e);
+  }
+};
 
 const publicUser = (u) => ({
   id: u._id,
@@ -95,6 +115,8 @@ router.post('/client', auth, async (req, res) => {
     if (avatar) user.image = avatar;
     await user.save();
 
+    await notifyAdminsOfPendingProfile('client', user);
+
     res.json({ user: publicUser(user), needsApproval: true });
   } catch (err) {
     console.error('\n❌ [POST /onboarding/client ERROR]', err);
@@ -135,6 +157,8 @@ async function freelancerOnboardingHandler(req, res) {
       // Store availability info
     }
     await user.save();
+
+    await notifyAdminsOfPendingProfile('freelancer', user);
 
     res.json({ user: publicUser(user), needsApproval: true });
   } catch (err) {

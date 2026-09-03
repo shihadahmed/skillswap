@@ -5,7 +5,16 @@ const notificationSchema = new mongoose.Schema(
     user_email: { type: String, required: true, lowercase: true, trim: true },
     type: {
       type: String,
-      enum: ['task_approved', 'task_rejected', 'proposal_accepted', 'payment_received', 'review_received'],
+      enum: [
+        'task_approved',
+        'task_rejected',
+        'proposal_accepted',
+        'payment_received',
+        'review_received',
+        'account_approval',
+        'account_approved',
+        'account_rejected',
+      ],
       required: true,
     },
     title: { type: String, required: true },
