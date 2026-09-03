@@ -21,8 +21,8 @@ export default function AdminApprovalsPage() {
     setLoading(true);
     try {
       const [list, stats] = await Promise.all([
-        api.get('/api/admin/approvals'),
-        api.get('/api/admin/approvals/stats'),
+        api.get('/admin/approvals'),
+        api.get('/admin/approvals/stats'),
       ]);
       setFreelancers(list.freelancers || []);
       setClients(list.clients || []);
@@ -38,7 +38,7 @@ export default function AdminApprovalsPage() {
 
   const handleApprove = async (id, role) => {
     try {
-      await api.put(`/api/admin/approvals/approve-user/${id}`);
+      await api.put(`/admin/approvals/approve-user/${id}`);
       toast.success(`${role} approved successfully!`);
       loadPending();
     } catch (err) {
@@ -51,7 +51,7 @@ export default function AdminApprovalsPage() {
     const reason = window.prompt(`Reason for rejecting this ${role}:`, 'Incomplete profile or documentation');
     if (reason === null) return;
     try {
-      await api.put(`/api/admin/approvals/reject-user/${id}`, { reason });
+      await api.put(`/admin/approvals/reject-user/${id}`, { reason });
       toast.success(`${role} rejected successfully!`);
       loadPending();
     } catch (err) {
