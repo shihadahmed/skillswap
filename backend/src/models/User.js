@@ -25,6 +25,8 @@ const userSchema = new mongoose.Schema(
     jobsCompleted: { type: Number, default: 0 },
     hourlyRate: { type: Number, default: 0, min: 0 },
     available_balance: { type: Number, default: 0, min: 0 },
+    payment_verified: { type: Boolean, default: false },
+    payment_verified_at: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -2,6 +2,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import ClientTasks from '@/components/dashboard/ClientTasks';
 import PostTaskForm from '@/components/dashboard/PostTaskForm';
+import WalletCard from '@/components/dashboard/WalletCard';
 import VerificationBanner from '@/lib/approval';
 
 export default function ClientDashboardPage() {
@@ -18,6 +19,10 @@ export default function ClientDashboardPage() {
               Manage your tasks and review incoming proposals.
             </p>
           </header>
+
+          <div className="mt-8">
+            <WalletCard />
+          </div>
 
           <div className="mt-8">
             <PostTaskForm />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { BadgeCheck } from 'lucide-react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import VerificationBanner from '@/lib/approval';
@@ -139,6 +140,11 @@ function ProfileBody() {
               >
                 {isApproved ? 'Verified' : 'Pending verification'}
               </span>
+              {user?.payment_verified && (
+                <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <BadgeCheck size={12} /> Payment Verified
+                </span>
+              )}
               <span className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
                 {user.role}
               </span>
@@ -202,6 +208,14 @@ function ProfileBody() {
           {isFreelancer && (
             <div>
               <p className="text-muted">Available balance</p>
+              <p className="font-bold text-ink">
+                {fmtBudget(user.available_balance || 0)}
+              </p>
+            </div>
+          )}
+          {user?.role === 'client' && (
+            <div>
+              <p className="text-muted">Wallet balance</p>
               <p className="font-bold text-ink">
                 {fmtBudget(user.available_balance || 0)}
               </p>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BadgeCheck } from 'lucide-react';
 
 const statusStyles = {
   open: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -91,7 +92,20 @@ export default function TaskCard({ task }) {
           </span>
         )}
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink truncate">{clientName}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="text-sm font-semibold text-ink truncate">
+              {clientName}
+            </p>
+            {client?.verifications?.payment_verified && (
+              <span
+                title="Payment Verified"
+                aria-label="Payment Verified"
+                className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+              >
+                <BadgeCheck size={10} /> Verified
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted truncate">
             {clientRating ? (
               <span className="text-amber-400 font-semibold">

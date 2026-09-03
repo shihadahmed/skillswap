@@ -33,10 +33,42 @@ const TASK_PROJECT = {
 const clientView = (u) =>
   u ? { name: u.name, image: u.image, email: u.email } : null;
 
-// Attach a client object to each task. The seeded/real data already embeds a
-// rich `client`, so we preserve it; otherwise we leave the document as-is.
+// Look up clients for a list of tasks and merge a fresh `verifications` object
+// into each `task.client`. The seed/admin shape on `task.client` is preserved
+// (rating, total_spent, etc.); we only add/refresh the payment_verified flag
+// from the User collection so the freelancer view can render a verified badge.
 async function attachClients(tasks) {
-  return tasks.map((t) => (t.toObject ? t.toObject() : t));
+  if (!tasks || !tasks.length) return tasks || [];
+  const emails = [
+    ...new Set(
+      tasks.map((t) => t.client_email).filter((e) => typeof e === 'string' && e)
+    ),
+  ];
+  let byEmail = new Map();
+  if (emails.length) {
+    const clients = await User.find({ email: { $in: emails } }).select(
+      'email name image payment_verified'
+    );
+    byEmail = new Map(clients.map((c) => [c.email, c]));
+  }
+  return tasks.map((t) => {
+    const obj = t.toObject ? t.toObject() : t;
+    const u = t.client_email ? byEmail.get(t.client_email) : null;
+    if (!u) return obj;
+    return {
+      ...obj,
+      client: {
+        ...(obj.client || {}),
+        name: obj.client?.name || u.name,
+        image: obj.client?.image || u.image,
+        email: u.email,
+        verifications: {
+          payment_verified: !!u.payment_verified,
+          identity_verified: false,
+        },
+      },
+    };
+  });
 }
 
 // Attach a proposals_count to each task based on its proposals.

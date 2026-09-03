@@ -11,7 +11,7 @@ const paymentSchema = new mongoose.Schema(
     },
     freelancer_email: {
       type: String,
-      required: true,
+      default: '',
       lowercase: true,
       trim: true,
       index: true,
@@ -19,7 +19,7 @@ const paymentSchema = new mongoose.Schema(
     task_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Task',
-      required: true,
+      default: null,
       index: true,
     },
 
@@ -55,19 +55,25 @@ const paymentSchema = new mongoose.Schema(
         'refunded',
         'completed',
         'failed',
+        'wallet_topup_confirmed',
       ],
       default: 'pending',
       index: true,
     },
     payment_type: {
       type: String,
-      enum: ['task_deposit', 'freelancer_withdraw'],
+      enum: ['task_deposit', 'freelancer_withdraw', 'wallet_topup'],
       default: 'task_deposit',
       index: true,
     },
     paid_at: { type: Date },
     released_at: { type: Date },
     refunded_at: { type: Date },
+
+    // Wallet top-up tracking. `credited_to_balance` records the exact USD
+    // amount that was added to the client's `available_balance` for a
+    // `wallet_topup` payment. Defaults to 0 for non-top-up rows.
+    credited_to_balance: { type: Number, default: 0, min: 0 },
 
     // Stripe-specific metadata
     stripe_session_id: { type: String, default: '', index: true },

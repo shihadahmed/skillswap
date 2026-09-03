@@ -37,6 +37,9 @@ const publicUser = (u) => ({
   isApproved: u.isApproved,
   approvalStatus: u.approvalStatus,
   isProfileComplete: u.isProfileComplete,
+  available_balance: u.available_balance,
+  payment_verified: u.payment_verified,
+  hourlyRate: u.hourlyRate,
 });
 
 router.post('/register', async (req, res) => {
