@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
+const Freelancer = require('../models/Freelancer');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { requireRole, optionalAuth, requireApproved } = auth;
@@ -373,9 +374,9 @@ router.post('/:id/proposals', auth, requireRole('freelancer'), requireApproved, 
       return res.status(403).json({ message: 'Profile incomplete. Complete onboarding first.' });
     }
     // Verify user exists in freelancers collection
-    const freelancer = await Freelancer.findOne({ user_email: req.user.email });
-    if (!freelancer || !freelancer.isApproved) {
-      return res.status(403).json({ message: 'Freelancer profile not approved.' });
+    const freelancer = await Freelancer.findOne({ email: req.user.email });
+    if (!freelancer) {
+      return res.status(403).json({ message: 'Freelancer profile not found. Complete onboarding first.' });
     }
 
     const { proposed_budget, estimated_days, cover_note, milestones } = req.body;
