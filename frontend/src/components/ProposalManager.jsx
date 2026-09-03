@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { fetcher } from '@/lib/fetcher';
 import { useRevalidate } from '@/lib/hooks';
+import { approvalBlockMessage, isApprovedUser } from '@/lib/approval';
 import { toast } from 'react-toastify';
 
 const statusStyles = {
@@ -18,6 +19,7 @@ export default function ProposalManager({ taskId, ownerEmail }) {
   const { user } = useAuth();
   const revalidate = useRevalidate();
   const isOwner = user?.role === 'client' && user.email === ownerEmail;
+  const blocked = !!user && !isApprovedUser(user);
 
   const { data, error, isLoading, mutate } = useSWR(
     isOwner ? `/tasks/${taskId}/proposals` : null,
@@ -28,6 +30,10 @@ export default function ProposalManager({ taskId, ownerEmail }) {
   if (!isOwner) return null;
 
   const decide = async (id, status) => {
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     // Optimistic: flip the proposal status in the cache instantly.
     await mutate(
       (cur) =>
@@ -94,13 +100,17 @@ export default function ProposalManager({ taskId, ownerEmail }) {
                 <div className="mt-4 flex gap-3">
                   <button
                     onClick={() => decide(p._id, 'accepted')}
-                    className="bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                    disabled={blocked}
+                    title={blocked ? 'Account pending verification' : undefined}
+                    className="bg-brand hover:bg-brand-hover text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     Accept
                   </button>
                   <button
                     onClick={() => decide(p._id, 'rejected')}
-                    className="border border-line text-muted hover:text-ink hover:border-brand/40 px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+                    disabled={blocked}
+                    title={blocked ? 'Account pending verification' : undefined}
+                    className="border border-line text-muted hover:text-ink hover:border-brand/40 px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     Reject
                   </button>

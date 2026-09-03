@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useRevalidate } from '@/lib/hooks';
+import { approvalBlockMessage, isApprovedUser } from '@/lib/approval';
 import { toast } from 'react-toastify';
 
 const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
@@ -45,6 +47,8 @@ const budgetTypeLabels = {
 
 export default function PostTaskForm({ onCreated }) {
   const revalidate = useRevalidate();
+  const { user } = useAuth();
+  const blocked = !!user && !isApprovedUser(user);
   const [form, setForm] = useState({
     title: '',
     category: 'Other',
@@ -79,6 +83,10 @@ export default function PostTaskForm({ onCreated }) {
 
   const post = async (e) => {
     e.preventDefault();
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     setSubmitting(true);
     setError('');
 
@@ -338,8 +346,9 @@ export default function PostTaskForm({ onCreated }) {
 
       <button
         type="submit"
-        disabled={submitting}
-        className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 w-full sm:w-auto"
+        disabled={submitting || blocked}
+        title={blocked ? 'Account pending verification' : undefined}
+        className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
       >
         {submitting ? 'Submitting for Review…' : 'Submit for Review'}
       </button>

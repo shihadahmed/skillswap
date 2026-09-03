@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Chart as ChartJS, BarElement, LineElement, Tooltip, Legend } from 'chart.js';
 import 'chart.js/auto';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { useClientOverview, useRevalidate } from '@/lib/hooks';
+import { approvalBlockMessage, isApprovedUser } from '@/lib/approval';
 import { toast } from 'react-toastify';
 import { fmtBudget, statusStyles, statusLabel } from '@/lib/format';
 import Pagination from '@/components/Pagination';
@@ -23,6 +25,8 @@ export default function ClientTasks() {
   // Promise.all so neither waits on the other.
   const { data, isLoading, isValidating, mutate } = useClientOverview(page);
   const revalidate = useRevalidate();
+  const { user } = useAuth();
+  const blocked = !!user && !isApprovedUser(user);
 
   const mine = data?.mine;
   const tasks = mine?.tasks || [];
@@ -97,6 +101,10 @@ export default function ClientTasks() {
 
   const submitEdit = async (e) => {
     e.preventDefault();
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
@@ -148,6 +156,10 @@ export default function ClientTasks() {
 
   const remove = async (t) => {
     if (typeof window === 'undefined') return;
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     if (!window.confirm('Delete this task? This cannot be undone.')) return;
     // Optimistic: drop it from the cache immediately for instant feedback.
     await mutate(
@@ -243,8 +255,8 @@ export default function ClientTasks() {
                       </span>
                       {t.status === 'open' && (
                         <>
-                          <button onClick={() => openEdit(t)} className="text-xs font-semibold text-brand hover:underline">Edit</button>
-                          <button onClick={() => remove(t)} className="text-xs font-semibold text-danger hover:underline">Delete</button>
+                          <button onClick={() => openEdit(t)} disabled={blocked} title={blocked ? 'Account pending verification' : undefined} className="text-xs font-semibold text-brand hover:underline disabled:opacity-60 disabled:cursor-not-allowed">Edit</button>
+                          <button onClick={() => remove(t)} disabled={blocked} title={blocked ? 'Account pending verification' : undefined} className="text-xs font-semibold text-danger hover:underline disabled:opacity-60 disabled:cursor-not-allowed">Delete</button>
                         </>
                       )}
                       <button

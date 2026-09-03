@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { approvalBlockMessage, isApprovedUser } from '@/lib/approval';
 import { toast } from 'react-toastify';
 import { fmtBudget } from '@/lib/format';
 import Pagination from '@/components/Pagination';
@@ -17,6 +19,8 @@ const STATUS_STYLES = {
 };
 
 export default function WithdrawPanel() {
+  const { user } = useAuth();
+  const blocked = !!user && !isApprovedUser(user);
   const [available, setAvailable] = useState(0);
   const [withdrawals, setWithdrawals] = useState([]);
   const [page, setPage] = useState(1);
@@ -51,6 +55,10 @@ export default function WithdrawPanel() {
   const submit = async (e) => {
     e.preventDefault();
     setError('');
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     const value = Number(amount);
     if (!value || value < MIN_WITHDRAWAL) {
       setError(`Minimum withdrawal is $${MIN_WITHDRAWAL}.`);
@@ -113,8 +121,9 @@ export default function WithdrawPanel() {
               </div>
               <button
                 type="submit"
-                disabled={submitting}
-                className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 whitespace-nowrap"
+                disabled={submitting || blocked}
+                title={blocked ? 'Account pending verification' : undefined}
+                className="bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {submitting ? 'Submitting…' : 'Request withdrawal'}
               </button>

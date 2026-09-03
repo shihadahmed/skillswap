@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "@/lib/api";
-import { dashboardPath, postLoginPath } from "@/components/ProtectedRoute";
+import { dashboardPath, onboardingPath } from "@/components/ProtectedRoute";
+import { isApprovedUser } from "@/lib/approval";
 import { toast } from "react-toastify";
 import Logo from "@/components/Logo";
 
@@ -36,8 +37,9 @@ export default function RegisterPage() {
     setBusy(true);
     try {
       const u = await register({ ...form, role });
-      toast.success("Account created successfully! Welcome to SkillSwap.");
-      router.push(postLoginPath(u));
+      toast.success('Account created successfully! Welcome to SkillSwap.');
+      const dest = isApprovedUser(u) ? dashboardPath(u.role) : onboardingPath(u.role);
+      router.push(dest);
     } catch (err) {
       const msg = err.message || "";
       if (/already/.test(msg)) {

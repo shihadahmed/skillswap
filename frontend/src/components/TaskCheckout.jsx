@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { useRevalidate } from '@/lib/hooks';
 import { calculateMarketplaceFees, formatCurrency } from '@/lib/fees';
 import { redirectToCheckout } from '@/lib/stripe';
+import { approvalBlockMessage, isApprovedUser } from '@/lib/approval';
 import { toast } from 'react-toastify';
 
 export default function TaskCheckout({ taskId, clientEmail, status }) {
@@ -26,6 +27,7 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
 
   const isOwner = user?.role === 'client' && user.email === clientEmail;
   if (!isOwner) return null;
+  const blocked = !!user && !isApprovedUser(user);
 
   // Fetch accepted proposal to get bid amount for fee calculation,
   // and the most recent Payment row (if any) to render escrow state.
@@ -132,6 +134,10 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
   }, [acceptedProposal]);
 
   const pay = async () => {
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -154,6 +160,10 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
 
   const releaseEscrow = async () => {
     if (!payment) return;
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -174,6 +184,10 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
 
   const refund = async () => {
     if (!payment) return;
+    if (blocked) {
+      toast.error(approvalBlockMessage());
+      return;
+    }
     if (!window.confirm('Refund this payment? This cannot be undone.')) return;
     setBusy(true);
     setError('');
@@ -282,8 +296,9 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
         {error && <p className="mb-3 text-sm text-danger">{error}</p>}
         <button
           onClick={pay}
-          disabled={busy}
-          className="w-full bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
+          disabled={busy || blocked}
+          title={blocked ? 'Account pending verification' : undefined}
+          className="w-full bg-brand hover:bg-brand-hover text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {busy
             ? 'Redirecting to checkout…'
@@ -331,16 +346,18 @@ export default function TaskCheckout({ taskId, clientEmail, status }) {
                 <button
                   type="button"
                   onClick={releaseEscrow}
-                  disabled={busy}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-60"
+                  disabled={busy || blocked}
+                  title={blocked ? 'Account pending verification' : undefined}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {busy ? 'Releasing…' : 'Release escrow'}
                 </button>
                 <button
                   type="button"
                   onClick={refund}
-                  disabled={busy}
-                  className="border border-line text-muted hover:text-ink hover:bg-slate-50 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-60"
+                  disabled={busy || blocked}
+                  title={blocked ? 'Account pending verification' : undefined}
+                  className="border border-line text-muted hover:text-ink hover:bg-slate-50 px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   Refund
                 </button>
