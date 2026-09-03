@@ -3,7 +3,7 @@ const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
-const { requireRole, optionalAuth } = auth;
+const { requireRole, optionalAuth, requireApproved } = auth;
 const cache = require('../utils/cache');
 
 const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
@@ -210,7 +210,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 });
 
 // POST /api/tasks — create (client, or admin posting on behalf of a client)
-router.post('/', auth, requireRole('client', 'admin'), async (req, res) => {
+router.post('/', auth, requireRole('client', 'admin'), requireApproved, async (req, res) => {
   try {
     // Check if client is approved and has complete profile (unless admin)
     const isAdmin = req.user.role === 'admin';
@@ -295,7 +295,7 @@ router.post('/', auth, requireRole('client', 'admin'), async (req, res) => {
 });
 
 // PUT /api/tasks/:id — update (owner only)
-router.put('/:id', auth, requireRole('client'), async (req, res) => {
+router.put('/:id', auth, requireRole('client'), requireApproved, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
@@ -340,7 +340,7 @@ router.put('/:id', auth, requireRole('client'), async (req, res) => {
 });
 
 // DELETE /api/tasks/:id — delete (owner only)
-router.delete('/:id', auth, requireRole('client'), async (req, res) => {
+router.delete('/:id', auth, requireRole('client'), requireApproved, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
@@ -357,7 +357,7 @@ router.delete('/:id', auth, requireRole('client'), async (req, res) => {
 });
 
 // POST /api/tasks/:id/proposals — freelancer applies
-router.post('/:id/proposals', auth, requireRole('freelancer'), async (req, res) => {
+router.post('/:id/proposals', auth, requireRole('freelancer'), requireApproved, async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });

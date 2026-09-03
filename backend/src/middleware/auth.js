@@ -52,3 +52,18 @@ module.exports.requireRole = (...roles) => (req, res, next) => {
   }
   next();
 };
+
+module.exports.requireApproved = (req, res, next) => {
+  if (!req.user) return res.status(401).json({ message: 'No token provided' });
+  if (req.user.role === 'admin') return next();
+  if (
+    req.user.isApproved === true ||
+    req.user.approvalStatus === 'approved'
+  ) {
+    return next();
+  }
+  return res.status(403).json({
+    message:
+      'Your account is pending verification. Please complete your profile and get admin approval to unlock this action.',
+  });
+};

@@ -3,7 +3,7 @@ const Proposal = require('../models/Proposal');
 const Task = require('../models/Task');
 const Freelancer = require('../models/Freelancer');
 const auth = require('../middleware/auth');
-const { requireRole } = auth;
+const { requireRole, requireApproved } = auth;
 
 // GET /api/proposals/mine — freelancer's own proposals (paginated + summary)
 router.get('/mine', auth, requireRole('freelancer'), async (req, res) => {
@@ -58,7 +58,7 @@ router.get('/mine', auth, requireRole('freelancer'), async (req, res) => {
 });
 
 // PUT /api/proposals/:id — accept or reject (task owner only)
-router.put('/:id', auth, requireRole('client'), async (req, res) => {
+router.put('/:id', auth, requireRole('client'), requireApproved, async (req, res) => {
   try {
     const { status } = req.body;
     if (!['accepted', 'rejected'].includes(status))
@@ -96,7 +96,7 @@ router.put('/:id', auth, requireRole('client'), async (req, res) => {
 
 // POST /api/proposals/:id/deliver — freelancer submits the deliverable URL
 // and marks the accepted task as completed.
-router.post('/:id/deliver', auth, requireRole('freelancer'), async (req, res) => {
+router.post('/:id/deliver', auth, requireRole('freelancer'), requireApproved, async (req, res) => {
   try {
     const { deliverable_url } = req.body;
     if (!deliverable_url || !/^https?:\/\/.+/.test(deliverable_url)) {
@@ -128,7 +128,7 @@ router.post('/:id/deliver', auth, requireRole('freelancer'), async (req, res) =>
 
 // POST /api/proposals -> create proposal (client posts on behalf of themselves)
 // This is used when a client wants to hire a freelancer without a task
-router.post('/', auth, requireRole('client'), async (req, res) => {
+router.post('/', auth, requireRole('client'), requireApproved, async (req, res) => {
   try {
     const { freelancer_email, proposed_budget, estimated_days, cover_note } = req.body;
     if (!freelancer_email || !proposed_budget || !estimated_days)

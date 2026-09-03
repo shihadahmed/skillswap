@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
-const { requireRole } = auth;
+const { requireRole, requireApproved } = auth;
 const Payment = require('../models/Payment');
 const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
@@ -29,7 +29,7 @@ const {
 //  POST /api/payments/checkout  — LEGACY dummy one-click (no Stripe key set).
 //  Kept as a fallback for grading demos where STRIPE_SECRET_KEY is blank.
 // -----------------------------------------------------------------------------
-router.post('/checkout', auth, requireRole('client'), async (req, res) => {
+router.post('/checkout', auth, requireRole('client'), requireApproved, async (req, res) => {
   try {
     if (isStripeLive()) {
       return res.status(400).json({
@@ -96,6 +96,7 @@ router.post(
   '/create-checkout-session',
   auth,
   requireRole('client'),
+  requireApproved,
   async (req, res) => {
     try {
       const { task_id } = req.body;
@@ -230,6 +231,7 @@ router.post(
   '/verify-session',
   auth,
   requireRole('client'),
+  requireApproved,
   async (req, res) => {
     try {
       const { sessionId, taskId } = req.body || {};
@@ -331,7 +333,7 @@ router.post(
 //  POST /api/payments/release  — client releases escrow to the freelancer.
 //  Body: { payment_id, force? } — force is admin-only.
 // -----------------------------------------------------------------------------
-router.post('/release', auth, async (req, res) => {
+router.post('/release', auth, requireApproved, async (req, res) => {
   try {
     const { payment_id, force } = req.body;
     if (!payment_id)
@@ -407,7 +409,7 @@ router.post('/release', auth, async (req, res) => {
 //  POST /api/payments/refund  — client refunds a payment.
 //  Body: { payment_id, reason? }
 // -----------------------------------------------------------------------------
-router.post('/refund', auth, requireRole('client'), async (req, res) => {
+router.post('/refund', auth, requireRole('client'), requireApproved, async (req, res) => {
   try {
     const { payment_id } = req.body;
     if (!payment_id)
@@ -539,6 +541,7 @@ router.post(
   '/withdraw',
   auth,
   requireRole('freelancer'),
+  requireApproved,
   async (req, res) => {
     try {
       const amount = Number(req.body.amount);
