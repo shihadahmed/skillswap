@@ -1,7 +1,6 @@
 const router = require('express').Router();
 const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
-const Freelancer = require('../models/Freelancer');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const { requireRole, optionalAuth, requireApproved } = auth;
@@ -213,20 +212,14 @@ router.get('/:id', optionalAuth, async (req, res) => {
 // POST /api/tasks — create (client, or admin posting on behalf of a client)
 router.post('/', auth, requireRole('client', 'admin'), requireApproved, async (req, res) => {
   try {
-    // Check if client is approved and has complete profile (unless admin)
+    // requireApproved middleware already enforces isApproved === true.
+    // We re-check the user (defense in depth) but no longer gate on
+    // isProfileComplete or require a Client collection row.
     const isAdmin = req.user.role === 'admin';
     if (!isAdmin) {
       const user = await User.findById(req.user._id);
       if (!user || !user.isApproved) {
         return res.status(403).json({ message: 'Account not approved. Awaiting admin approval.' });
-      }
-      if (!user.isProfileComplete) {
-        return res.status(403).json({ message: 'Profile incomplete. Complete onboarding first.' });
-      }
-      // Verify user exists in clients collection
-      const client = await Client.findOne({ user_email: req.user.email });
-      if (!client || !client.isApproved) {
-        return res.status(403).json({ message: 'Client profile not approved.' });
       }
     }
 
@@ -365,18 +358,14 @@ router.post('/:id/proposals', auth, requireRole('freelancer'), requireApproved, 
     if (task.status !== 'open')
       return res.status(400).json({ message: 'This task is no longer accepting proposals' });
 
-    // Check if freelancer is approved and has complete profile
+    // requireApproved middleware already enforces isApproved === true.
+    // We re-check the user (defense in depth) but no longer gate on
+    // isProfileComplete. The Freelancer collection is a public-profile
+    // cache, not a source of truth — a missing row is fine here; the
+    // proposal itself is keyed on the User document.
     const user = await User.findById(req.user._id);
     if (!user || !user.isApproved) {
       return res.status(403).json({ message: 'Account not approved. Awaiting admin approval.' });
-    }
-    if (!user.isProfileComplete) {
-      return res.status(403).json({ message: 'Profile incomplete. Complete onboarding first.' });
-    }
-    // Verify user exists in freelancers collection
-    const freelancer = await Freelancer.findOne({ email: req.user.email });
-    if (!freelancer) {
-      return res.status(403).json({ message: 'Freelancer profile not found. Complete onboarding first.' });
     }
 
     const { proposed_budget, estimated_days, cover_note, milestones } = req.body;
