@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "@/lib/api";
-import { dashboardPath } from "@/components/ProtectedRoute";
+import { dashboardPath, postLoginPath } from "@/components/ProtectedRoute";
 import { toast } from "react-toastify";
 import Logo from "@/components/Logo";
 
@@ -37,7 +37,7 @@ export default function RegisterPage() {
     try {
       const u = await register({ ...form, role });
       toast.success("Account created successfully! Welcome to SkillSwap.");
-      router.push(dashboardPath(u.role));
+      router.push(postLoginPath(u));
     } catch (err) {
       const msg = err.message || "";
       if (/already/.test(msg)) {

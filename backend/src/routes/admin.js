@@ -9,6 +9,8 @@ const Payment = require('../models/Payment');
 const Review = require('../models/Review');
 const Notification = require('../models/Notification');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
+const Freelancer = require('../models/Freelancer');
+const Client = require('../models/Client');
 const { isStripeLive, getStripeClient } = require('../config/stripe');
 
 const admin = [auth, requireRole('admin')];
@@ -26,6 +28,9 @@ const publicUser = (u) => ({
   isBlocked: u.isBlocked,
   rating: u.rating,
   jobsCompleted: u.jobsCompleted,
+  isApproved: u.isApproved,
+  approvalStatus: u.approvalStatus,
+  isProfileComplete: u.isProfileComplete,
   createdAt: u.createdAt,
 });
 

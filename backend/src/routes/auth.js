@@ -34,6 +34,9 @@ const publicUser = (u) => ({
   bio: u.bio,
   rating: u.rating,
   jobsCompleted: u.jobsCompleted,
+  isApproved: u.isApproved,
+  approvalStatus: u.approvalStatus,
+  isProfileComplete: u.isProfileComplete,
 });
 
 router.post('/register', async (req, res) => {

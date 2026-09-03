@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { toast } from 'react-toastify';
 
 export default function ClientOnboardingPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({
     full_name: user?.name || '',
@@ -39,6 +39,7 @@ export default function ClientOnboardingPage() {
         company_size: form.company_size,
         avatar: form.avatar,
       });
+      await refreshUser();
       toast.success('Client profile submitted! Awaiting admin approval.');
       router.push('/dashboard/client');
     } catch (err) {

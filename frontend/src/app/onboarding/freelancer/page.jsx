@@ -26,7 +26,7 @@ const matchesHeadline = (item, headline, keywords) => {
 };
 
 export default function FreelancerOnboardingPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
 
   // Dynamic Metadata from Database
@@ -185,6 +185,7 @@ export default function FreelancerOnboardingPage() {
 
       await api.put('/onboarding/freelancer', payload);
 
+      await refreshUser();
       toast.success('Freelancer profile submitted! Awaiting admin approval.');
       router.push('/dashboard/freelancer');
     } catch (err) {

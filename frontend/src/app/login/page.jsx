@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { API_URL } from '@/lib/api';
-import { dashboardPath } from '@/components/ProtectedRoute';
+import { dashboardPath, postLoginPath } from '@/components/ProtectedRoute';
 import { toast } from 'react-toastify';
 import Logo from '@/components/Logo';
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
     try {
       const u = await login(email, password);
       toast.success('Logged in successfully!');
-      router.push(dashboardPath(u.role));
+      router.push(postLoginPath(u));
     } catch (err) {
       const msg = (err.message || '').toLowerCase();
       if (msg.includes('blocked')) {

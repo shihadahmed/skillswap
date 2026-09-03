@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 
@@ -11,9 +11,28 @@ export function dashboardPath(role) {
   return '/dashboard/client';
 }
 
+export function onboardingPath(role) {
+  if (role === 'freelancer') return '/onboarding/freelancer';
+  return '/onboarding/client';
+}
+
+export function postLoginPath(user) {
+  if (!user) return '/login';
+  if (user.role === 'admin') return dashboardPath('admin');
+  if (!user.isProfileComplete) return onboardingPath(user.role);
+  return dashboardPath(user.role);
+}
+
 export default function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const needsOnboarding =
+    !!user &&
+    user.role !== 'admin' &&
+    !user.isProfileComplete &&
+    !(pathname || '').startsWith('/onboarding');
 
   useEffect(() => {
     if (loading) return;
@@ -24,8 +43,12 @@ export default function ProtectedRoute({ children, roles }) {
     if (roles && !roles.includes(user.role)) {
       toast.error('Access denied! You do not have permission to view this dashboard.');
       router.replace(dashboardPath(user.role));
+      return;
     }
-  }, [loading, user, roles, router]);
+    if (needsOnboarding) {
+      router.replace(onboardingPath(user.role));
+    }
+  }, [loading, user, roles, router, pathname, needsOnboarding]);
 
   if (loading) {
     return (
@@ -36,6 +59,7 @@ export default function ProtectedRoute({ children, roles }) {
   }
   if (!user) return null;
   if (roles && !roles.includes(user.role)) return null;
+  if (needsOnboarding) return null;
 
   return children;
 }

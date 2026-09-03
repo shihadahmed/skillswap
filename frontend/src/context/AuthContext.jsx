@@ -63,8 +63,19 @@ export function AuthProvider({ children }) {
 
   const updateUser = (patch) => setUser((u) => (u ? { ...u, ...patch } : u));
 
+  const refreshUser = async () => {
+    try {
+      const data = await api.get('/auth/me');
+      const fresh = data.user || data;
+      if (fresh) setUser(fresh);
+      return fresh;
+    } catch (e) {
+      return null;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
