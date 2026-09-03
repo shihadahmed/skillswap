@@ -16,10 +16,18 @@ export function onboardingPath(role) {
   return '/onboarding/client';
 }
 
+function isVerifiedOrComplete(user) {
+  return (
+    user.isApproved === true ||
+    user.approvalStatus === 'approved' ||
+    user.isProfileComplete === true
+  );
+}
+
 export function postLoginPath(user) {
   if (!user) return '/login';
   if (user.role === 'admin') return dashboardPath('admin');
-  if (!user.isProfileComplete) return onboardingPath(user.role);
+  if (!isVerifiedOrComplete(user)) return onboardingPath(user.role);
   return dashboardPath(user.role);
 }
 
@@ -31,7 +39,7 @@ export default function ProtectedRoute({ children, roles }) {
   const needsOnboarding =
     !!user &&
     user.role !== 'admin' &&
-    !user.isProfileComplete &&
+    !isVerifiedOrComplete(user) &&
     !(pathname || '').startsWith('/onboarding');
 
   useEffect(() => {
