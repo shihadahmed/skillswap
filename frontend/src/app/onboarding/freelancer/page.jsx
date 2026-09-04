@@ -57,6 +57,13 @@ export default function FreelancerOnboardingPage() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      const resolvedName = user.name || user.email?.split('@')[0] || '';
+      setForm((prev) => ({ ...prev, name: prev.name || resolvedName }));
+    }
+  }, [user]);
+
   // Fetch dynamic categories & skills from database collections
   useEffect(() => {
     async function fetchMetadata() {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -22,6 +22,14 @@ export default function ClientOnboardingPage() {
     company_size: user?.company_size || '',
     avatar: user?.image || '',
   });
+
+  useEffect(() => {
+    if (user) {
+      const resolvedName = user.name || user.email?.split('@')[0] || '';
+      setForm((prev) => ({ ...prev, full_name: prev.full_name || resolvedName }));
+    }
+  }, [user]);
+
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
