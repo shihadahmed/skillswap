@@ -6,7 +6,7 @@ import Footer from '@/components/Footer';
 
 // Routes that render the in-app dashboard chrome (sidebar) instead of the
 // public marketing navbar/footer.
-const APP_ROUTES = ['/dashboard', '/tasks/create', '/admin'];
+const APP_ROUTES = ['/dashboard', '/tasks/create', '/admin', '/notifications'];
 
 function isAppRoute(pathname) {
   return APP_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
