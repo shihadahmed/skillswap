@@ -18,7 +18,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { dashboardPath } from '@/components/ProtectedRoute';
 import Logo from '@/components/Logo';
-import NavbarBell from '@/components/NavbarBell';
+import NotificationBell from '@/components/NotificationBell';
 
 const formatNumber = (n) =>
   Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -143,7 +143,7 @@ export default function Navbar() {
           {user ? (
             <>
               <BalanceBadge user={user} />
-              <NavbarBell />
+              <NotificationBell position="dropdown" />
               <div className="relative" ref={menuRef}>
                 <button
                   type="button"

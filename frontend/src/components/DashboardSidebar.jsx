@@ -3,87 +3,109 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Settings as SettingsIcon, User } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Briefcase,
+  PlusCircle,
+  Users,
+  User,
+  Settings,
+  Bell,
+  Search,
+  FileCheck,
+  Wallet,
+  ShieldCheck,
+  Layers,
+  ArrowRightLeft,
+  Banknote,
+  Star,
+  LogOut,
+  ChevronLeft,
+  Menu,
+  X,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import Logo from '@/components/Logo';
 import NotificationBell from '@/components/NotificationBell';
 
-const navByRole = {
+const NAV_CONFIG = {
   client: [
-    { href: '/dashboard/client', label: 'Overview' },
-    { href: '/dashboard/client/my-tasks', label: 'My Tasks' },
-    { href: '/tasks/create', label: 'Post a Task' },
-    { href: '/freelancers', label: 'Browse Freelancers' },
-    { href: '/dashboard/profile', label: 'My Profile', icon: 'user' },
-    { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
-    { href: '/notifications', label: 'Notifications' },
+    {
+      group: 'Core',
+      items: [
+        { href: '/dashboard/client', label: 'Overview', icon: LayoutDashboard },
+        { href: '/dashboard/client/my-tasks', label: 'My Tasks', icon: Briefcase },
+        { href: '/tasks/create', label: 'Post a Task', icon: PlusCircle },
+        { href: '/freelancers', label: 'Browse Freelancers', icon: Users },
+      ],
+    },
+    {
+      group: 'Preferences',
+      items: [
+        { href: '/notifications', label: 'Notifications', icon: Bell },
+        { href: '/dashboard/profile', label: 'My Profile', icon: User },
+        { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+      ],
+    },
   ],
   freelancer: [
-    { href: '/dashboard/freelancer', label: 'Overview' },
-    { href: '/tasks', label: 'Browse Tasks' },
-    { href: '/dashboard/freelancer/my-proposals', label: 'My Proposals' },
-    { href: '/dashboard/freelancer/wallet', label: 'Wallet' },
-    { href: '/dashboard/profile', label: 'My Profile', icon: 'user' },
-    { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
-    { href: '/notifications', label: 'Notifications' },
+    {
+      group: 'Core',
+      items: [
+        { href: '/dashboard/freelancer', label: 'Overview', icon: LayoutDashboard },
+        { href: '/tasks', label: 'Find Work', icon: Search },
+        { href: '/dashboard/freelancer/my-proposals', label: 'My Proposals', icon: FileCheck },
+        { href: '/dashboard/freelancer/wallet', label: 'Earnings & Wallet', icon: Wallet },
+      ],
+    },
+    {
+      group: 'Preferences',
+      items: [
+        { href: '/notifications', label: 'Notifications', icon: Bell },
+        { href: '/dashboard/profile', label: 'My Profile', icon: User },
+        { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+      ],
+    },
   ],
   admin: [
-    { href: '/dashboard/admin', label: 'Overview' },
-    { href: '/admin/approvals', label: 'Approvals' },
-    { href: '/dashboard/admin/users', label: 'Manage Users' },
-    { href: '/dashboard/admin/tasks', label: 'Manage Tasks' },
-    { href: '/dashboard/admin/transactions', label: 'Transactions' },
-    { href: '/dashboard/admin/withdrawals', label: 'Withdrawals' },
-    { href: '/dashboard/admin/reviews', label: 'Reviews' },
-    { href: '/dashboard/profile', label: 'My Profile', icon: 'user' },
-    { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
-    { href: '/notifications', label: 'Notifications' },
+    {
+      group: 'Platform',
+      items: [
+        { href: '/dashboard/admin', label: 'Overview', icon: LayoutDashboard },
+        { href: '/admin/approvals', label: 'Approvals', icon: ShieldCheck },
+        { href: '/dashboard/admin/users', label: 'Manage Users', icon: Users },
+        { href: '/dashboard/admin/tasks', label: 'Manage Tasks', icon: Layers },
+      ],
+    },
+    {
+      group: 'Finance & Reviews',
+      items: [
+        { href: '/dashboard/admin/transactions', label: 'Transactions', icon: ArrowRightLeft },
+        { href: '/dashboard/admin/withdrawals', label: 'Withdrawals', icon: Banknote },
+        { href: '/dashboard/admin/reviews', label: 'Reviews', icon: Star },
+      ],
+    },
+    {
+      group: 'Preferences',
+      items: [
+        { href: '/notifications', label: 'Notifications', icon: Bell },
+        { href: '/dashboard/profile', label: 'My Profile', icon: User },
+        { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+      ],
+    },
   ],
 };
-
-function iconFor(kind) {
-  if (kind === 'user') return <User size={18} aria-hidden="true" />;
-  if (kind === 'settings') return <SettingsIcon size={18} aria-hidden="true" />;
-  return null;
-}
-
-function MenuIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M18 6L6 18M6 6l12 12" />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-    </svg>
-  );
-}
-
-function isActiveRoute(pathname, href) {
-  return pathname === href;
-}
 
 export default function DashboardSidebar({ children }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!user) return null;
 
-  const nav = navByRole[user.role] || [];
+  const navGroups = NAV_CONFIG[user.role] || [];
   const avatar =
     user.image ||
     'https://placehold.co/80x80?text=' + encodeURIComponent((user.name || 'U')[0]);
@@ -95,140 +117,186 @@ export default function DashboardSidebar({ children }) {
 
   return (
     <div className="min-h-screen flex bg-bg relative">
+      {/* Desktop Collapsed Toggle Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="hidden md:flex fixed top-6 left-6 z-50 p-2.5 rounded-xl bg-surface border border-line shadow-soft text-muted hover:text-ink hover:bg-slate-50 transition-all cursor-pointer items-center justify-center"
+          className="hidden md:flex fixed top-5 left-5 z-50 p-2 rounded-xl bg-surface border border-line shadow-sm text-muted hover:text-ink hover:bg-surface-raised transition-all cursor-pointer items-center justify-center"
           title="Open sidebar"
           aria-label="Open sidebar"
         >
-          <MenuIcon />
+          <Menu size={18} />
         </button>
       )}
 
+      {/* Desktop Main Sidebar */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-line bg-surface p-5 hidden md:flex md:flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-40 w-64 border-r border-line bg-surface flex-col hidden md:flex transition-transform duration-300 ease-in-out select-none ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between mb-8">
+        {/* Brand Header */}
+        <div className="h-16 px-5 border-b border-line flex items-center justify-between">
           <Logo />
           <button
             onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-slate-100 transition-colors cursor-pointer"
-            title="Hide sidebar"
-            aria-label="Hide sidebar"
+            className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-raised transition-colors cursor-pointer"
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
           >
-            <CloseIcon />
+            <ChevronLeft size={18} />
           </button>
         </div>
 
-        <nav className="space-y-1 flex-1 min-h-0 overflow-y-auto">
-          {nav.map((item) => {
-            const active = isActiveRoute(pathname, item.href);
-            const icon = iconFor(item.icon);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-brand/10 text-brand font-semibold'
-                    : 'text-muted hover:text-ink hover:bg-slate-50'
-                }`}
-              >
-                {icon}
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="mt-auto pt-4 border-t border-line flex items-center gap-3">
-          <NotificationBell />
-          <span className="relative inline-block">
-            <img
-              src={avatar}
-              alt={user.name}
-              className="w-10 h-10 rounded-full object-cover border border-line"
-            />
-            {(user?.isApproved === true || user?.approvalStatus === 'approved') && (
-              <span
-                aria-label="Verified"
-                title="Verified account"
-                className="absolute -bottom-1 -right-1 bg-blue-500 text-white rounded-full p-0.5 w-4 h-4 flex items-center justify-center ring-2 ring-surface"
-              >
-                <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                  <path fillRule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 011.414-1.42L8.5 12.086l6.79-6.796a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </span>
-            )}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="font-semibold truncate text-sm text-ink">
-              {user.name}
+        {/* Grouped Navigation Links */}
+        <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-6">
+          {navGroups.map((group, gIdx) => (
+            <div key={gIdx} className="space-y-1">
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-muted/80">
+                {group.group}
+              </p>
+              <div className="space-y-0.5 pt-1">
+                {group.items.map((item) => {
+                  const active = pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`group flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                        active
+                          ? 'bg-brand text-white shadow-xs'
+                          : 'text-muted hover:text-ink hover:bg-surface-raised'
+                      }`}
+                    >
+                      <Icon
+                        size={17}
+                        className={`transition-colors ${
+                          active ? 'text-white' : 'text-muted group-hover:text-ink'
+                        }`}
+                      />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-            <span className="inline-block mt-0.5 text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
-              {user.role}
-            </span>
-          </div>
-          <button
-            onClick={handleLogout}
-            title="Log out"
-            className="text-muted hover:text-ink cursor-pointer"
-            aria-label="Log out"
-          >
-            <LogoutIcon />
-          </button>
+          ))}
         </div>
-      </aside>
 
-      <div className="md:hidden fixed inset-x-0 top-0 z-40 bg-surface/95 backdrop-blur border-b border-line">
-        <div className="flex items-center justify-between px-4 h-14">
-          <Logo />
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <span className="text-[10px] uppercase tracking-wide font-bold px-2 py-0.5 rounded-full bg-brand/10 text-brand">
-              {user.role}
-            </span>
+        {/* User Card & Logout */}
+        <div className="p-3 border-t border-line">
+          <div className="flex items-center gap-3 p-2 rounded-xl bg-surface-raised/50 border border-line/60">
+            <div className="relative shrink-0">
+              <img
+                src={avatar}
+                alt={user.name}
+                className="w-9 h-9 rounded-full object-cover border border-line"
+              />
+              {(user?.isApproved === true || user?.approvalStatus === 'approved') && (
+                <span
+                  title="Verified Account"
+                  className="absolute -bottom-0.5 -right-0.5 bg-blue-500 text-white rounded-full p-0.5 w-3.5 h-3.5 flex items-center justify-center ring-2 ring-surface"
+                >
+                  <svg viewBox="0 0 20 20" fill="currentColor" className="w-2.5 h-2.5">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.704 5.29a1 1 0 010 1.42l-7.5 7.5a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 011.414-1.42L8.5 12.086l6.79-6.796a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold truncate text-xs text-ink">{user.name}</p>
+              <span className="inline-block text-[10px] font-semibold text-brand tracking-wide capitalize">
+                {user.role} workspace
+              </span>
+            </div>
+            <NotificationBell position="dropup" />
             <button
               onClick={handleLogout}
-              title="Log out"
-              className="text-muted hover:text-ink cursor-pointer"
-              aria-label="Log out"
+              title="Sign out"
+              className="p-1.5 rounded-lg text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
             >
-              <LogoutIcon />
+              <LogOut size={16} />
             </button>
           </div>
         </div>
-        <nav className="flex gap-2 overflow-x-auto px-4 pb-3">
-          {nav.map((item) => {
-            const active = isActiveRoute(pathname, item.href);
-            const icon = iconFor(item.icon);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`whitespace-nowrap inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-brand/10 text-brand font-semibold'
-                    : 'text-muted hover:text-ink bg-slate-50'
-                }`}
-              >
-                {icon}
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+      </aside>
+
+      {/* Mobile Top App Bar */}
+      <div className="md:hidden fixed inset-x-0 top-0 z-40 bg-surface/95 backdrop-blur border-b border-line px-4 h-14 flex items-center justify-between">
+        <Logo />
+        <div className="flex items-center gap-2">
+          <NotificationBell position="dropdown" />
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-raised"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </div>
 
+      {/* Mobile Dropdown Drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-x-0 top-14 bottom-0 z-40 bg-surface/95 backdrop-blur p-4 overflow-y-auto space-y-6">
+          {navGroups.map((group, idx) => (
+            <div key={idx} className="space-y-1">
+              <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-muted/80">
+                {group.group}
+              </p>
+              <div className="space-y-1 pt-1">
+                {group.items.map((item) => {
+                  const active = pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold ${
+                        active
+                          ? 'bg-brand text-white'
+                          : 'text-muted hover:text-ink hover:bg-surface-raised'
+                      }`}
+                    >
+                      <Icon size={18} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <div className="pt-4 border-t border-line flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={avatar} alt={user.name} className="w-8 h-8 rounded-full border border-line" />
+              <div>
+                <p className="text-xs font-semibold text-ink">{user.name}</p>
+                <p className="text-[10px] text-muted capitalize">{user.role}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 text-xs font-semibold text-rose-600 bg-rose-50 rounded-lg"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
       <main
-        className={`flex-1 min-w-0 pt-28 md:pt-0 transition-all duration-300 ease-in-out ${
-          isOpen ? 'md:ml-64' : 'md:ml-0 md:pl-16'
+        className={`flex-1 min-w-0 pt-16 md:pt-0 transition-all duration-300 ease-in-out ${
+          isOpen ? 'md:ml-64' : 'md:ml-0'
         }`}
       >
-        {children}
+        <div className="p-4 md:p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
   );

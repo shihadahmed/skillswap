@@ -1,33 +1,25 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
-export default function NotificationBell() {
+function resolveRoute(notification) {
+  if (notification?.type === 'account_approval') return '/admin/approvals';
+  return '/notifications';
+}
+
+export default function NotificationBell({ position = 'dropdown' }) {
   const { user } = useAuth();
+  const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const dropdownRef = useRef(null);
+  const containerRef = useRef(null);
 
-  useEffect(() => {
-    if (!user) return;
-    fetchNotifications();
-  }, [user]);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get('/notifications?limit=10');
       setNotifications(res.notifications || []);
@@ -35,7 +27,31 @@ export default function NotificationBell() {
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    fetchNotifications().finally(() => setLoading(false));
+  }, [user, fetchNotifications]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleMouseDown = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKey = (event) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [isOpen]);
 
   const markAsRead = async (notificationId) => {
     try {
@@ -57,6 +73,14 @@ export default function NotificationBell() {
     } catch (err) {
       console.error('Failed to mark all as read:', err);
     }
+  };
+
+  const handleNotificationClick = async (notification) => {
+    if (!notification.is_read) {
+      await markAsRead(notification._id);
+    }
+    setIsOpen(false);
+    router.push(resolveRoute(notification));
   };
 
   const formatTime = (dateString) => {
@@ -135,42 +159,66 @@ export default function NotificationBell() {
 
   if (!user) return null;
 
+  const panelPositionClass =
+    position === 'dropup'
+      ? 'absolute bottom-full mb-3 left-0 sm:-left-4'
+      : 'absolute top-full mt-2 right-0';
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={containerRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
         className="relative p-2 rounded-xl text-muted hover:text-ink hover:bg-slate-100 transition-colors"
         aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-danger text-white text-xs font-bold rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <span
+            aria-hidden="true"
+            className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-surface animate-pulse"
+          />
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 md:w-96 bg-surface border border-line rounded-2xl shadow-lg z-50 overflow-hidden">
+        <div
+          role="dialog"
+          aria-label="Notifications"
+          className={`${panelPositionClass} w-80 md:w-96 bg-surface border border-line rounded-2xl shadow-lg z-50 overflow-hidden`}
+        >
           <div className="flex items-center justify-between p-4 border-b border-line">
-            <h3 className="font-semibold text-ink">Notifications</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-baseline gap-2">
+              <h3 className="font-semibold text-ink">Notifications</h3>
               {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="text-xs font-medium text-brand hover:underline"
-                >
-                  Mark all read
-                </button>
+                <span className="text-xs font-semibold text-brand">
+                  {unreadCount} unread
+                </span>
               )}
             </div>
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="text-xs font-medium text-brand hover:underline"
+              >
+                Mark all read
+              </button>
+            )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
+          <div className="max-h-80 overflow-y-auto">
+            {loading && notifications.length === 0 ? (
+              <div className="p-8 text-center text-muted">
+                <div className="w-6 h-6 mx-auto border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                <p className="mt-3 text-sm">Loading notifications...</p>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="p-8 text-center text-muted">
                 <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -182,7 +230,18 @@ export default function NotificationBell() {
                 {notifications.map((notification) => (
                   <li
                     key={notification._id}
-                    className={`p-4 hover:bg-slate-50 transition-colors ${!notification.is_read ? 'bg-brand/5' : ''}`}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 hover:bg-slate-50 transition-colors cursor-pointer ${
+                      !notification.is_read ? 'bg-brand/5' : ''
+                    }`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleNotificationClick(notification);
+                      }
+                    }}
                   >
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 mt-0.5">{getIcon(notification.type)}</div>
@@ -191,17 +250,11 @@ export default function NotificationBell() {
                           <h4 className={`font-medium text-sm ${!notification.is_read ? 'text-ink' : 'text-muted'}`}>
                             {notification.title}
                           </h4>
-                          <span className="text-xs text-muted whitespace-nowrap">{formatTime(notification.createdAt)}</span>
+                          <span className="text-xs text-muted whitespace-nowrap">
+                            {formatTime(notification.createdAt)}
+                          </span>
                         </div>
                         <p className="text-sm text-muted mt-1 line-clamp-2">{notification.message}</p>
-                        {!notification.is_read && (
-                          <button
-                            onClick={() => markAsRead(notification._id)}
-                            className="mt-2 text-xs font-medium text-brand hover:underline"
-                          >
-                            Mark as read
-                          </button>
-                        )}
                       </div>
                     </div>
                   </li>
@@ -210,16 +263,18 @@ export default function NotificationBell() {
             )}
           </div>
 
-          {notifications.length > 0 && (
-            <div className="p-3 border-t border-line bg-slate-50">
-              <a
-                href="/notifications"
-                className="block text-center text-sm font-medium text-brand hover:underline"
-              >
-                View all notifications
-              </a>
-            </div>
-          )}
+          <div className="p-3 border-t border-line bg-slate-50">
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                router.push('/notifications');
+              }}
+              className="w-full text-center text-sm font-medium text-brand hover:underline"
+            >
+              Show more notifications
+            </button>
+          </div>
         </div>
       )}
     </div>
