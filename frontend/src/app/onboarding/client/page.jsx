@@ -9,8 +9,10 @@ import { toast } from 'react-toastify';
 export default function ClientOnboardingPage() {
   const { user, refreshUser } = useAuth();
   const router = useRouter();
+  const defaultName = user?.name || user?.email?.split('@')[0] || '';
+
   const [form, setForm] = useState({
-    full_name: user?.name || '',
+    full_name: defaultName,
     company_name: user?.company_name || '',
     headline: user?.headline || '',
     location: user?.location ? { city: user.location.city, country: user.location.country } : { city: '', country: '' },
@@ -70,10 +72,14 @@ export default function ClientOnboardingPage() {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
               <input
                 value={form.full_name}
-                onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                readOnly
+                disabled
                 required
-                className="w-full rounded-xl border border-line px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand/40 bg-white"
+                className="w-full rounded-xl border border-line px-4 py-2.5 bg-slate-100 text-slate-500 cursor-not-allowed"
               />
+              <p className="mt-1.5 text-xs text-muted">
+                Name is linked to your account and cannot be changed here.
+              </p>
             </div>
 
             <div>

@@ -34,8 +34,10 @@ export default function FreelancerOnboardingPage() {
   const [dbSkills, setDbSkills] = useState([]);
   const [loadingMeta, setLoadingMeta] = useState(true);
 
+  const defaultName = user?.name || user?.email?.split('@')[0] || '';
+
   const [form, setForm] = useState({
-    name: user?.name || '',
+    name: defaultName,
     headline: user?.headline || '',
     hourly_rate_amount: user?.hourly_rate?.amount || user?.hourlyRate || 25,
     experience_level: user?.experience_level || 'Beginner',
@@ -139,7 +141,6 @@ export default function FreelancerOnboardingPage() {
 
   const validate = () => {
     const errs = {};
-    if (!form.name.trim()) errs.name = 'Full name is required';
     if (!form.headline.trim()) errs.headline = 'Professional headline is required';
     if (!form.hourly_rate_amount || Number(form.hourly_rate_amount) <= 0)
       errs.hourly_rate_amount = 'Valid hourly rate is required';
@@ -215,17 +216,17 @@ export default function FreelancerOnboardingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Full Name <span className="text-red-500">*</span>
+                Full Name
               </label>
               <input
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Tanvir Hasan"
-                className={`w-full h-11 rounded-xl border px-3.5 text-sm focus:outline-none focus:ring-2 bg-white ${
-                  errors.name ? 'border-red-400 focus:ring-red-300' : 'border-line focus:ring-brand/40'
-                }`}
+                readOnly
+                disabled
+                className="w-full h-11 rounded-xl border border-line px-3.5 text-sm bg-slate-100 text-slate-500 cursor-not-allowed"
               />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+              <p className="text-[11px] text-muted mt-1">
+                Name is linked to your account and cannot be changed here.
+              </p>
             </div>
 
             <div>
