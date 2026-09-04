@@ -18,6 +18,7 @@ const {
   buildSuccessUrl,
   buildCancelUrl,
 } = require('../lib/payments');
+const { createNotification, notifyAdmin } = require('../utils/notify');
 
 // Note: Webhook support has been intentionally retired in favor of
 // client-return verification (POST /api/payments/verify-session). Stripe
@@ -701,6 +702,21 @@ router.post(
           `new available_balance = $${updated?.available_balance ?? '?'}, ` +
           `payment_verified = ${!!updated?.payment_verified}`
       );
+
+      // Notify the client (deposit confirmed) and admins (audit trail).
+      await Promise.all([
+        createNotification({
+          userEmail: payment.client_email,
+          title: 'Deposit Successful',
+          message: `Your wallet was credited with $${credit.toFixed(2)}.`,
+          type: 'payment_received',
+        }),
+        notifyAdmin({
+          title: 'New Deposit',
+          message: `Client ${payment.client_email} deposited $${credit.toFixed(2)}.`,
+          type: 'admin_alert',
+        }),
+      ]);
 
       res.json({
         success: true,

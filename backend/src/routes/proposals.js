@@ -4,6 +4,7 @@ const Task = require('../models/Task');
 const Freelancer = require('../models/Freelancer');
 const auth = require('../middleware/auth');
 const { requireRole, requireApproved } = auth;
+const { createNotification, notifyAdmin } = require('../utils/notify');
 
 // GET /api/proposals/mine — freelancer's own proposals (paginated + summary)
 router.get('/mine', auth, requireRole('freelancer'), async (req, res) => {
@@ -82,6 +83,21 @@ router.put('/:id', auth, requireRole('client'), requireApproved, async (req, res
       );
       task.status = 'in_progress';
       await task.save();
+
+      // Notify the freelancer (hired) and admins (contract started).
+      await Promise.all([
+        createNotification({
+          userEmail: proposal.freelancer_email,
+          title: 'Proposal Accepted',
+          message: `You have been hired for "${task.title}".`,
+          type: 'account_approved',
+        }),
+        notifyAdmin({
+          title: 'Contract Started',
+          message: `Client ${task.client_email} hired ${proposal.freelancer_email} for "${task.title}".`,
+          type: 'admin_alert',
+        }),
+      ]);
     } else {
       proposal.status = 'rejected';
       await proposal.save();

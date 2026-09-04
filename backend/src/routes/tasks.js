@@ -2,9 +2,11 @@ const router = require('express').Router();
 const Task = require('../models/Task');
 const Proposal = require('../models/Proposal');
 const User = require('../models/User');
+const Client = require('../models/Client');
 const auth = require('../middleware/auth');
 const { requireRole, optionalAuth, requireApproved } = auth;
 const cache = require('../utils/cache');
+const { createNotification, notifyAdmin } = require('../utils/notify');
 
 const CATEGORIES = ['Design', 'Writing', 'Development', 'Marketing', 'Other'];
 
@@ -313,6 +315,21 @@ router.post('/', auth, requireRole('client', 'admin'), requireApproved, async (r
       );
     }
 
+    // Notify the client and admins that a new task is live.
+    await Promise.all([
+      createNotification({
+        userEmail: client_email,
+        title: 'Task Published',
+        message: `Your task "${task.title}" is now live.`,
+        type: 'task_created',
+      }),
+      notifyAdmin({
+        title: 'New Task',
+        message: `${req.user.email} published "${task.title}".`,
+        type: 'admin_alert',
+      }),
+    ]);
+
     res.status(201).json({ task });
   } catch (err) {
     console.error('\n❌ [POST /tasks ERROR]', err);
@@ -430,6 +447,29 @@ router.post('/:id/proposals', auth, requireRole('freelancer'), requireApproved, 
       cover_note: cover_note || '',
       milestones: milestones || [],
     });
+
+    // Notify the client (new proposal), the freelancer (confirmation), and
+    // admins (audit trail).
+    await Promise.all([
+      createNotification({
+        userEmail: task.client_email,
+        title: 'New Proposal',
+        message: `You received a new proposal on "${task.title}".`,
+        type: 'task_submitted',
+      }),
+      createNotification({
+        userEmail: req.user.email,
+        title: 'Proposal Sent',
+        message: `Your proposal for "${task.title}" was submitted successfully.`,
+        type: 'task_submitted',
+      }),
+      notifyAdmin({
+        title: 'Proposal Activity',
+        message: `${req.user.email} submitted a proposal for "${task.title}".`,
+        type: 'admin_alert',
+      }),
+    ]);
+
     res.status(201).json({ proposal });
   } catch (err) {
     console.error('\n❌ [POST /tasks/:id/proposals ERROR]', err);
