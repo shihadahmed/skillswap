@@ -15,6 +15,11 @@ export const metadata = {
   title: 'SkillSwap — Freelance Micro-Task Platform',
   description:
     'Get your tasks done by skilled freelancers. Post a task, receive proposals, hire and pay securely.',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({ children }) {
