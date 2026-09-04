@@ -38,7 +38,7 @@ export default function ClientOnboardingPage() {
     setError('');
     setSubmitting(true);
     try {
-      await api.put('/api/onboarding/client', {
+      await api.post('/onboarding/client', {
         full_name: form.full_name,
         company_name: form.company_name,
         headline: form.headline,
