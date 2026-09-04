@@ -422,10 +422,10 @@ router.put('/approvals/approve-user/:id', admin, async (req, res) => {
     // Sync to dedicated collection
     if (user.role === 'freelancer') {
       await Freelancer.findOneAndUpdate(
-        { user_email: user.email },
+        { email: user.email },
         {
           id: 'fl_' + Math.random().toString(36).slice(2, 8),
-          user_email: user.email,
+          email: user.email,
           name: user.name,
           avatar: user.image || '',
           skills: user.skills || [],

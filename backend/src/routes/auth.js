@@ -77,7 +77,7 @@ router.post('/register', async (req, res) => {
       try {
         await Freelancer.create({
           id: 'fl_' + Math.random().toString(36).slice(2, 8),
-          user_email: email,
+          email,
           name: user.name,
           avatar: user.image || '',
           skills: user.skills || [],
